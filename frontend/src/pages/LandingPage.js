@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -8,8 +9,9 @@ import LoginModal from '../components/LoginModal';
 import './LandingPage.css';
 
 const LandingPage = () => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const { t } = useLanguage();
+  const navigate = useNavigate();
   const [products, setProducts] = useState([]);
   const [allProducts, setAllProducts] = useState([]);
   const [featuredProducts, setFeaturedProducts] = useState([]);
@@ -53,6 +55,9 @@ const LandingPage = () => {
       color: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)'
     }
   ];
+
+  // Don't redirect admin - let them browse user pages if they want
+  // Only redirect happens on fresh admin login from AdminLogin component
 
   // Auto-slide banner
   useEffect(() => {
@@ -133,7 +138,8 @@ const LandingPage = () => {
   const fetchProducts = async () => {
     try {
       setLoading(true);
-      const url = 'http://localhost:5000/api/products';
+      // Request all products by setting a high limit
+      const url = 'http://localhost:5000/api/products?limit=1000';
       const res = await axios.get(url);
       // Handle both response formats: {products: [...]} or [...]
       const productsList = Array.isArray(res.data) ? res.data : (res.data.products || []);

@@ -6,6 +6,9 @@ import { useLanguage } from '../context/LanguageContext';
 import ProductReview from '../components/ProductReview';
 import PaymentMethodModal from '../components/PaymentMethodModal';
 import QRCodeModal from '../components/QRCodeModal';
+import OrderSuccessModal from '../components/OrderSuccessModal';
+import LoginModal from '../components/LoginModal';
+import RegisterModal from '../components/RegisterModal';
 import './ProductDetail.css';
 
 const ProductDetail = () => {
@@ -19,12 +22,54 @@ const ProductDetail = () => {
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showQRModal, setShowQRModal] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [paymentId, setPaymentId] = useState(null);
+  const [orderId, setOrderId] = useState(null);
+  const [orderNumber, setOrderNumber] = useState(null);
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [showRegisterModal, setShowRegisterModal] = useState(false);
+  const [pendingBuyNow, setPendingBuyNow] = useState(false);
 
   useEffect(() => {
     fetchProduct();
   }, [id]);
+
+  // Listen for register modal open event (from Buy Now button)
+  useEffect(() => {
+    const handleOpenRegister = () => {
+      setShowRegisterModal(true);
+      setPendingBuyNow(true);
+    };
+    window.addEventListener('openRegisterModal', handleOpenRegister);
+    return () => window.removeEventListener('openRegisterModal', handleOpenRegister);
+  }, []);
+
+  // Monitor payment modal - close it if user becomes unauthenticated
+  useEffect(() => {
+    if (showPaymentModal && (!isAuthenticated || !user || user.role === 'admin')) {
+      // User is not authenticated or is admin - close payment modal
+      setShowPaymentModal(false);
+    }
+  }, [showPaymentModal, isAuthenticated, user]);
+
+  // After login, continue with Buy Now flow
+  useEffect(() => {
+    // Only proceed if user is authenticated, has pending Buy Now, and no modals are open
+    if (isAuthenticated && user && user.role !== 'admin' && pendingBuyNow && !showLoginModal && !showRegisterModal) {
+      // Small delay to ensure modals are closed, then open payment modal
+      const timer = setTimeout(() => {
+        setPendingBuyNow(false);
+        // Double check authentication before opening payment modal
+        if (isAuthenticated && user && user.role !== 'admin') {
+          setShowPaymentModal(true);
+        } else {
+          setPendingBuyNow(false);
+        }
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [isAuthenticated, user, pendingBuyNow, showLoginModal, showRegisterModal]);
 
   useEffect(() => {
     // Reset quantity to 1 when product changes
@@ -131,15 +176,26 @@ const ProductDetail = () => {
   };
 
   const handleBuyNow = () => {
-    if (!isAuthenticated) {
-      // Directly open register modal without alert
-      window.dispatchEvent(new CustomEvent('openRegisterModal'));
+    // Strict check: user must be authenticated and not admin
+    if (!isAuthenticated || !user || user.role === 'admin') {
+      // Open register modal first
+      setShowRegisterModal(true);
+      setPendingBuyNow(true);
       return;
     }
+    // Only show payment modal if user is properly authenticated
     setShowPaymentModal(true);
   };
 
   const handlePaymentMethodSelect = async (method) => {
+    // Double check authentication before proceeding
+    if (!isAuthenticated || !user || user.role === 'admin') {
+      setShowPaymentModal(false);
+      setShowRegisterModal(true);
+      setPendingBuyNow(true);
+      return;
+    }
+
     setShowPaymentModal(false);
     setProcessing(true);
 
@@ -172,11 +228,12 @@ const ProductDetail = () => {
       if (method === 'online') {
         // Online payment - show QR code modal
         setPaymentId(payment._id);
+        setOrderId(order._id);
         setShowQRModal(true);
       } else {
-        // COD - directly navigate to orders page
-        alert('Order placed successfully! Your order will be delivered soon.');
-        navigate('/orders');
+        // COD - show success modal (like login modal style)
+        setOrderNumber(order.orderNumber);
+        setShowSuccessModal(true);
       }
     } catch (error) {
       console.error('Error creating order:', error);
@@ -307,30 +364,35 @@ const ProductDetail = () => {
                 <span className="total-label">{t('total')}:</span>
                 <span className="total-price">Rs. {totalPrice.toFixed(2)}</span>
               </div>
-              <button
-                className="buy-now-btn"
-                onClick={handleBuyNow}
-                disabled={processing || availableStock === 0 || quantity === 0}
-              >
-                {processing ? t('processing') : t('buyNow')}
-              </button>
+              <div className="action-buttons">
+                <button onClick={() => navigate(-1)} className="back-btn-inline">
+                  ← Back to Product Page
+                </button>
+                <button
+                  className="buy-now-btn"
+                  onClick={handleBuyNow}
+                  disabled={processing || availableStock === 0 || quantity === 0}
+                >
+                  {processing ? t('processing') : t('buyNow')}
+                </button>
+              </div>
             </div>
           </div>
         </div>
         <div className="product-reviews-section">
           <ProductReview product={product} onReviewAdded={fetchProduct} />
         </div>
-        <button onClick={() => navigate(-1)} className="back-btn">
-          ← {t('back')}
-        </button>
       </div>
 
-      <PaymentMethodModal
-        isOpen={showPaymentModal}
-        onClose={() => setShowPaymentModal(false)}
-        onSelectMethod={handlePaymentMethodSelect}
-        totalAmount={totalPrice}
-      />
+      {/* Only show payment modal if user is authenticated and not admin */}
+      {isAuthenticated && user && user.role !== 'admin' && (
+        <PaymentMethodModal
+          isOpen={showPaymentModal}
+          onClose={() => setShowPaymentModal(false)}
+          onSelectMethod={handlePaymentMethodSelect}
+          totalAmount={totalPrice}
+        />
+      )}
 
       <QRCodeModal
         isOpen={showQRModal}
@@ -339,6 +401,55 @@ const ProductDetail = () => {
         }}
         paymentId={paymentId}
         amount={totalPrice}
+        orderId={orderId}
+      />
+      <OrderSuccessModal
+        isOpen={showSuccessModal}
+        onClose={() => setShowSuccessModal(false)}
+        orderNumber={orderNumber}
+      />
+
+      {/* Login Modal - shown after registration or if user clicks login */}
+      <LoginModal
+        isOpen={showLoginModal}
+        skipNavigation={true}
+        onLoginSuccess={(user) => {
+          // Don't navigate - stay on product detail page for Buy Now flow
+          // The useEffect will detect authentication and open payment modal
+        }}
+        onClose={() => {
+          setShowLoginModal(false);
+          // If user cancels login after registering, cancel pending Buy Now
+          if (!isAuthenticated) {
+            setPendingBuyNow(false);
+          }
+        }}
+        onSwitchToRegister={() => {
+          setShowLoginModal(false);
+          setShowRegisterModal(true);
+        }}
+      />
+
+      {/* Register Modal - shown when Buy Now is clicked without login */}
+      <RegisterModal
+        isOpen={showRegisterModal}
+        onClose={() => {
+          setShowRegisterModal(false);
+          // If user cancels registration, cancel pending Buy Now
+          if (!isAuthenticated) {
+            setPendingBuyNow(false);
+          }
+        }}
+        onSwitchToLogin={() => {
+          // After registration, switch to login modal
+          // Close register modal first
+          setShowRegisterModal(false);
+          // Open login modal immediately after register modal closes
+          // Use requestAnimationFrame to ensure DOM update happens first
+          requestAnimationFrame(() => {
+            setShowLoginModal(true);
+          });
+        }}
       />
     </div>
   );

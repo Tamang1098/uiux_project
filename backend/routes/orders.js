@@ -233,13 +233,35 @@ router.get('/admin/all', adminAuth, async (req, res) => {
   }
 });
 
-// Delete order (Admin)
-router.delete('/:id', adminAuth, async (req, res) => {
+// Cancel order (User - can cancel their own pending orders)
+router.delete('/:id', auth, async (req, res) => {
   try {
     const order = await Order.findById(req.params.id);
     
     if (!order) {
       return res.status(404).json({ message: 'Order not found' });
+    }
+
+    // Check if user owns the order or is admin
+    const isOwner = order.user.toString() === req.user.id;
+    const isAdmin = req.user.role === 'admin';
+    
+    if (!isOwner && !isAdmin) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+
+    // Only allow cancellation of pending orders (unless admin)
+    if (!isAdmin && order.orderStatus !== 'pending') {
+      return res.status(400).json({ message: 'Only pending orders can be cancelled' });
+    }
+
+    // Restore product stock
+    for (const item of order.items) {
+      const product = await Product.findById(item.product);
+      if (product) {
+        product.stock += item.quantity;
+        await product.save();
+      }
     }
 
     // Delete associated payment if exists
@@ -251,10 +273,10 @@ router.delete('/:id', adminAuth, async (req, res) => {
     // Delete the order
     await Order.findByIdAndDelete(req.params.id);
     
-    console.log('Order deleted successfully from MongoDB:', req.params.id);
-    res.json({ message: 'Order deleted successfully' });
+    console.log('Order cancelled/deleted successfully:', req.params.id);
+    res.json({ message: 'Order cancelled successfully' });
   } catch (error) {
-    console.error('Error deleting order:', error);
+    console.error('Error cancelling order:', error);
     res.status(500).json({ message: error.message });
   }
 });

@@ -23,36 +23,40 @@ const OrderHistory = () => {
     }
     fetchOrders();
     fetchNotifications(false); // Don't show toast on initial load
-    // Poll for notifications and orders every 10 seconds
+    // Poll for notifications and orders every 3 seconds for faster updates
     const interval = setInterval(() => {
       fetchNotifications(true); // Show toast for new notifications
       fetchOrders();
-    }, 10000);
+    }, 3000);
     
-    // Listen for order status updates from admin
+    // Listen for order status updates from admin - immediate update
     const handleOrderStatusUpdate = () => {
+      console.log('Order status update event received - fetching orders and notifications');
       fetchOrders();
       fetchNotifications(true); // Show toast for new notifications
     };
     window.addEventListener('orderStatusUpdated', handleOrderStatusUpdate);
     
-    // Listen for localStorage events (cross-tab communication)
+    // Listen for localStorage events (cross-tab communication) - immediate update
     const handleStorageChange = (e) => {
-      if (e.key === 'orderStatusUpdated' || e.key === 'paymentVerified') {
+      if (e.key === 'orderStatusUpdated' || e.key === 'paymentVerified' || e.key === 'notificationUpdated') {
+        console.log('Storage change detected:', e.key, '- fetching orders and notifications');
         fetchOrders();
         fetchNotifications(true); // Show toast for new notifications
       }
     };
     window.addEventListener('storage', handleStorageChange);
     
-    // Listen for notification updates
+    // Listen for notification updates - immediate update
     const handleNotificationUpdate = () => {
+      console.log('Notification update event received - fetching notifications');
       fetchNotifications(true); // Show toast for new notifications
     };
     window.addEventListener('notificationUpdated', handleNotificationUpdate);
     
-    // Listen for payment verification
+    // Listen for payment verification - immediate update
     const handlePaymentVerified = () => {
+      console.log('Payment verified event received - fetching orders and notifications');
       fetchOrders();
       fetchNotifications(true); // Show toast for payment success
     };
@@ -83,18 +87,23 @@ const OrderHistory = () => {
       const res = await axios.get('http://localhost:5000/api/auth/notifications');
       const newNotifications = res.data;
       
-      // Check for new payment success notifications (only on subsequent calls)
-      if (showPaymentToast && notifications.length > 0) {
-        const previousNotificationIds = notifications.map(n => n._id);
+      // Check for new payment/order notifications
+      if (showPaymentToast) {
+        const previousNotificationIds = notifications.length > 0 ? notifications.map(n => n._id) : [];
         const newPaymentNotifications = newNotifications.filter(n => 
           !previousNotificationIds.includes(n._id) && 
-          n.type === 'payment' && 
-          n.message.includes('Payment successful')
+          (n.type === 'payment' || (n.type === 'order' && n.message.includes('processing'))) &&
+          (n.message.includes('Payment') || n.message.includes('processing') || n.message.includes('received'))
         );
         
-        // Show toast for new payment success notifications
+        // Show toast for new payment/processing notifications
         if (newPaymentNotifications.length > 0) {
-          showToast(t('paymentSuccessful'), 'success');
+          const firstNotification = newPaymentNotifications[0];
+          if (firstNotification.message.includes('processing') || firstNotification.message.includes('received')) {
+            showToast('Payment received! Your order is being processed.', 'success');
+          } else {
+            showToast(t('paymentSuccessful'), 'success');
+          }
         }
       }
       

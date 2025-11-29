@@ -17,6 +17,12 @@ const UserNavbar = () => {
   const [showRegisterModal, setShowRegisterModal] = useState(false);
   const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
 
+  // On user pages, treat admin as not logged in (hide admin state)
+  // Admin can still browse but won't see admin-specific UI on user pages
+  const isAdminOnUserPage = isAuthenticated && user?.role === 'admin' && !location.pathname.startsWith('/admin');
+  const effectiveIsAuthenticated = isAdminOnUserPage ? false : isAuthenticated;
+  const effectiveUser = isAdminOnUserPage ? null : user;
+
   useEffect(() => {
     // Listen for custom event to open register modal
     const handleOpenRegister = () => {
@@ -26,9 +32,9 @@ const UserNavbar = () => {
     return () => window.removeEventListener('openRegisterModal', handleOpenRegister);
   }, []);
 
-  // Fetch notification count for authenticated users
+  // Fetch notification count for authenticated users (not for admin on user pages)
   useEffect(() => {
-    if (!isAuthenticated) {
+    if (!effectiveIsAuthenticated) {
       setUnreadNotificationCount(0);
       return;
     }
@@ -44,8 +50,8 @@ const UserNavbar = () => {
     };
 
     fetchNotificationCount();
-    // Poll for notifications every 10 seconds
-    const interval = setInterval(fetchNotificationCount, 10000);
+    // Poll for notifications every 3 seconds for faster updates
+    const interval = setInterval(fetchNotificationCount, 3000);
     
     // Listen for notification updates (window events)
     const handleNotificationUpdate = () => {
@@ -73,7 +79,7 @@ const UserNavbar = () => {
       window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('orderStatusUpdated', handleCustomEvent);
     };
-  }, [isAuthenticated]);
+  }, [effectiveIsAuthenticated]);
 
   return (
     <nav className="user-navbar">
@@ -82,16 +88,16 @@ const UserNavbar = () => {
           <Link to="/" className="navbar-logo">
             <h2>EventShop Nepal</h2>
           </Link>
-          {isAuthenticated && user?.role !== 'admin' && (
+          {effectiveIsAuthenticated && effectiveUser && (
             <div className="navbar-welcome">
-              {t('welcomeBack')}, {user?.name}! 👋
+              Welcome {effectiveUser?.name}
             </div>
           )}
         </div>
         
         <div className="navbar-menu">
-          {isAuthenticated ? (
-            // User Navbar - Product Page, My Orders, Profile Icon, Logout
+          {effectiveIsAuthenticated && effectiveUser ? (
+            // Regular user Navbar - Product Page, My Orders, Profile Icon, Logout
             <>
               <Link 
                 to="/" 
@@ -111,10 +117,11 @@ const UserNavbar = () => {
                   </span>
                 )}
               </Link>
-              <ProfileDropdown user={user} />
+              <ProfileDropdown user={effectiveUser} />
               <button onClick={() => { logout(); navigate('/'); }} className="navbar-link navbar-logout">{t('logout')}</button>
             </>
           ) : (
+            // Not authenticated - show Login/Register buttons
             <>
               <a 
                 href="/admin/login" 
@@ -124,7 +131,16 @@ const UserNavbar = () => {
               >
                 {t('adminLogin')}
               </a>
-              <button onClick={() => setShowLoginModal(true)} className="navbar-link">
+              <button 
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  console.log('Login button clicked, opening login modal');
+                  setShowLoginModal(true);
+                }} 
+                className="navbar-link"
+                type="button"
+              >
                 {t('login')}
               </button>
               <button onClick={() => setShowRegisterModal(true)} className="navbar-link">
@@ -132,15 +148,6 @@ const UserNavbar = () => {
               </button>
             </>
           )}
-          {/* Language Dropdown */}
-          <select 
-            value={language}
-            onChange={(e) => setLanguage(e.target.value)}
-            className="navbar-language-dropdown"
-          >
-            <option value="en">English</option>
-            <option value="ne">नेपाली</option>
-          </select>
         </div>
       </div>
       

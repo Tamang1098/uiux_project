@@ -52,11 +52,17 @@ const RegisterModal = ({ isOpen, onClose, onSwitchToLogin }) => {
       localStorage.setItem('newUserCreated', Date.now().toString());
       setTimeout(() => localStorage.removeItem('newUserCreated'), 100);
       
-      onClose();
       setFormData({ name: '', email: '', phone: '', password: '', confirmPassword: '' });
       showToast(t('registrationSuccess'), 'success');
-      // Switch to login modal after successful registration
-      onSwitchToLogin();
+      
+      // Switch to login modal - this will handle closing register modal and opening login modal
+      if (onSwitchToLogin) {
+        // Call onSwitchToLogin immediately - the parent component will handle timing
+        onSwitchToLogin();
+      } else {
+        // If no onSwitchToLogin callback, just close the modal
+        onClose();
+      }
     } else {
       setError(result.message);
     }

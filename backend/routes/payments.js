@@ -115,10 +115,14 @@ router.post('/:paymentId/confirm', auth, async (req, res) => {
     order.orderStatus = 'confirmed';
     await order.save();
 
+    // Populate order to get orderNumber
+    await order.populate('user', 'name email');
+    
     res.json({ 
       message: 'Payment confirmed successfully',
       payment,
-      order
+      order,
+      orderNumber: order.orderNumber
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -129,21 +133,36 @@ router.post('/:paymentId/confirm', auth, async (req, res) => {
 router.put('/:paymentId/status', adminAuth, async (req, res) => {
   try {
     const { status } = req.body;
+    
+    // First find and update payment
     const payment = await Payment.findByIdAndUpdate(
       req.params.paymentId,
       { status },
       { new: true }
-    ).populate('order').populate('user');
+    );
 
     if (!payment) {
       return res.status(404).json({ message: 'Payment not found' });
     }
 
-    // Update order payment status
+    // Now populate order and user
+    await payment.populate('order');
+    await payment.populate('user', 'name email');
+
+    // Update order payment status and order status
+    let orderStatusSet = false;
     if (payment.order) {
       payment.order.paymentStatus = status;
+      // When admin marks payment as paid, set order status to "processing" (not confirmed)
       if (status === 'paid') {
-        payment.order.orderStatus = 'confirmed';
+        // Check if this is being called from admin panel - if so, set to processing
+        const setToProcessing = req.body.setOrderStatus === 'processing' || req.query.setOrderStatus === 'processing';
+        if (setToProcessing) {
+          payment.order.orderStatus = 'processing';
+          orderStatusSet = true;
+        } else {
+          payment.order.orderStatus = 'confirmed';
+        }
       }
       await payment.order.save();
     }
@@ -151,29 +170,80 @@ router.put('/:paymentId/status', adminAuth, async (req, res) => {
     // Create notification for user when payment is marked as paid (only for online payments, not COD)
     // Skip notification if skipNotification flag is set or if it's COD payment
     const skipNotification = req.query.skipNotification === 'true' || req.body.skipNotification === true;
-    if (status === 'paid' && payment.user && !skipNotification && payment.method !== 'cod') {
-      const Notification = require('../models/Notification');
-      const order = payment.order;
-      const date = new Date().toLocaleDateString('en-US', { 
-        year: 'numeric', 
-        month: 'long', 
-        day: 'numeric' 
-      });
-      const day = new Date().toLocaleDateString('en-US', { weekday: 'long' });
-      const time = new Date().toLocaleTimeString('en-US', { 
-        hour: '2-digit', 
-        minute: '2-digit' 
-      });
+    
+    // Get user ID - handle both populated and non-populated cases
+    let userId = null;
+    if (payment.user) {
+      if (typeof payment.user === 'object' && payment.user._id) {
+        userId = payment.user._id.toString();
+      } else {
+        userId = payment.user.toString();
+      }
+    }
+    
+    console.log('Payment status update:', {
+      status,
+      paymentMethod: payment.method,
+      hasUserId: !!userId,
+      userId: userId,
+      hasOrder: !!payment.order,
+      skipNotification,
+      orderStatusSet
+    });
+    
+    if (status === 'paid' && userId && !skipNotification && payment.method !== 'cod' && payment.order) {
+      try {
+        const Notification = require('../models/Notification');
+        const order = payment.order;
+        
+        if (!order || !order.orderNumber) {
+          console.error('Order or orderNumber is missing:', order);
+        } else {
+          const date = new Date().toLocaleDateString('en-US', { 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric' 
+          });
+          const day = new Date().toLocaleDateString('en-US', { weekday: 'long' });
+          const time = new Date().toLocaleTimeString('en-US', { 
+            hour: '2-digit', 
+            minute: '2-digit' 
+          });
 
-      await Notification.create({
-        type: 'payment',
-        message: `Payment successful! Your payment for Order #${order.orderNumber} has been verified. Order confirmed. - ${date}, ${day}, ${time}`,
-        user: payment.user._id,
-        link: `/orders/${order._id}`,
-        metadata: {
-          orderId: order._id,
-          paymentId: payment._id
+          // If order status was set to processing, send processing message
+          const notificationMessage = orderStatusSet
+            ? `Payment has been received, so we are processing your order. Order #${order.orderNumber} - ${date}, ${day}, ${time}`
+            : `Payment successful! Your payment for Order #${order.orderNumber} has been verified. Order confirmed. - ${date}, ${day}, ${time}`;
+
+          const notification = await Notification.create({
+            type: 'payment', // Payment notification type
+            message: notificationMessage,
+            user: userId,
+            link: `/orders/${order._id}`,
+            metadata: {
+              orderId: order._id,
+              paymentId: payment._id,
+              paymentStatus: 'verified'
+            }
+          });
+          console.log('✅ Notification created successfully:', {
+            notificationId: notification._id,
+            userId: userId,
+            orderNumber: order.orderNumber,
+            message: notificationMessage.substring(0, 50) + '...'
+          });
         }
+      } catch (notifError) {
+        console.error('❌ Error creating notification:', notifError);
+        // Don't fail the payment update if notification fails
+      }
+    } else {
+      console.log('⚠️ Notification skipped:', {
+        statusIsPaid: status === 'paid',
+        hasUserId: !!userId,
+        skipNotification,
+        isCod: payment.method === 'cod',
+        hasOrder: !!payment.order
       });
     }
 

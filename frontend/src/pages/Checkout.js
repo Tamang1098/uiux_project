@@ -5,6 +5,7 @@ import { useToast } from '../context/ToastContext';
 import { useLanguage } from '../context/LanguageContext';
 import axios from 'axios';
 import QRCodeModal from '../components/QRCodeModal';
+import OrderSuccessModal from '../components/OrderSuccessModal';
 import './Checkout.css';
 
 const Checkout = () => {
@@ -17,7 +18,10 @@ const Checkout = () => {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [showQRModal, setShowQRModal] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [paymentId, setPaymentId] = useState(null);
+  const [orderId, setOrderId] = useState(null);
+  const [orderNumber, setOrderNumber] = useState(null);
   const [shippingAddress, setShippingAddress] = useState({
     fullName: '',
     phone: '',
@@ -63,15 +67,15 @@ const Checkout = () => {
       if (paymentMethod === 'online') {
         // Show QR modal for online payment
         setPaymentId(res.data.payment._id);
+        setOrderId(res.data.order._id);
         setShowQRModal(true);
         setSubmitting(false);
         showToast(t('paymentVerificationProgress'), 'info');
       } else {
-        // For COD, show success message and navigate
-        showToast(t('orderPlacedSuccess'), 'success');
-        setTimeout(() => {
-          navigate('/orders');
-        }, 2000);
+        // For COD, show success modal (like login modal style)
+        setOrderNumber(res.data.order?.orderNumber);
+        setShowSuccessModal(true);
+        setSubmitting(false);
       }
     } catch (error) {
       showToast(error.response?.data?.message || t('errorPlacingOrder'), 'error');
@@ -120,6 +124,12 @@ const Checkout = () => {
           onClose={() => setShowQRModal(false)}
           paymentId={paymentId}
           amount={totals.total}
+          orderId={orderId}
+        />
+        <OrderSuccessModal
+          isOpen={showSuccessModal}
+          onClose={() => setShowSuccessModal(false)}
+          orderNumber={orderNumber}
         />
         <form onSubmit={handleSubmit} className="checkout-form">
           <div className="checkout-content">

@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { useLanguage } from '../context/LanguageContext';
 import './LoginModal.css';
 
-const LoginModal = ({ isOpen, onClose, onSwitchToRegister }) => {
-  const { login, isAuthenticated } = useAuth();
+const LoginModal = ({ isOpen, onClose, onSwitchToRegister, skipNavigation = false, onLoginSuccess }) => {
+  const { login, isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const { showToast } = useToast();
   const { t } = useLanguage();
   const [formData, setFormData] = useState({
@@ -37,11 +38,24 @@ const LoginModal = ({ isOpen, onClose, onSwitchToRegister }) => {
       setFormData({ email: '', password: '' });
       showToast(t('loginSuccess'), 'success');
       onClose();
-      // Only navigate after successful login - regular users go to product page, admin goes to admin panel
-      if (result.user?.role === 'admin') {
-        navigate('/admin');
-      } else {
-        navigate('/');
+      
+      // Call custom onLoginSuccess callback if provided
+      if (onLoginSuccess) {
+        onLoginSuccess(result.user);
+        return; // Don't navigate if custom callback is provided
+      }
+      
+      // Only navigate if skipNavigation is false
+      if (!skipNavigation) {
+        // Only navigate after successful login - regular users go to product page, admin goes to admin panel
+        // Make sure we're checking the actual logged-in user, not any cached state
+        const loggedInUser = result.user;
+        if (loggedInUser?.role === 'admin') {
+          navigate('/admin');
+        } else {
+          // Regular user - stay on current page or go to home
+          navigate('/');
+        }
       }
     } else {
       setError(result.message);
@@ -56,8 +70,21 @@ const LoginModal = ({ isOpen, onClose, onSwitchToRegister }) => {
   };
 
 
-  // Don't show login modal if user is already authenticated
-  if (!isOpen || isAuthenticated) return null;
+  // Don't show login modal if not requested to open
+  if (!isOpen) return null;
+  
+  // On user pages, treat admin as not logged in (allow login)
+  // On admin pages, if admin is logged in, don't show login form
+  const isAdminOnUserPage = isAuthenticated && user?.role === 'admin' && !location.pathname.startsWith('/admin');
+  const shouldShowLogin = !isAuthenticated || isAdminOnUserPage;
+  
+  // If user is already authenticated (and not admin on user page), don't show login modal
+  if (!shouldShowLogin) {
+    console.log('LoginModal: User already authenticated, not showing login form');
+    return null;
+  }
+  
+  console.log('LoginModal: Rendering login form, isOpen:', isOpen, 'isAuthenticated:', isAuthenticated, 'isAdminOnUserPage:', isAdminOnUserPage);
 
   return (
     <div className="modal-overlay" onClick={handleClose}>

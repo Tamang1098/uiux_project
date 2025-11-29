@@ -3,6 +3,7 @@
   background: #f5f5f5;
   padding: 1.5rem 0;
   padding-top: 100px;
+  position: relative;
 }
 
 .back-btn {
@@ -27,10 +28,36 @@
   box-shadow: 0 4px 12px rgba(255, 112, 67, 0.3);
 }
 
+.back-btn-fixed {
+  position: absolute;
+  top: 35%;
+  right: calc(50% + 400px + 0.5rem);
+  transform: translateY(-50%);
+  background: #dc3545;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  z-index: 10;
+  font-size: 1rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  white-space: nowrap;
+}
+
+.back-btn-fixed:hover {
+  background: #ff7043;
+  color: white;
+  transform: translateY(-50%) translateX(-2px);
+}
+
 .container-small {
-  max-width: 1000px;
+  max-width: 800px;
   margin: 0 auto;
   padding: 0 1.5rem;
+  position: relative;
 }
 
 .product-detail-content {
@@ -40,14 +67,16 @@
   background: white;
   padding: 1.5rem;
   border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
   margin-bottom: 1.5rem;
+  position: relative;
 }
 
 .product-image-section {
   display: flex;
   flex-direction: column;
   gap: 1rem;
+  position: relative;
 }
 
 .main-image-container {
@@ -59,6 +88,7 @@
   background: #f9f9f9;
   border-radius: 8px;
   overflow: hidden;
+  position: relative;
 }
 
 .product-main-image {
@@ -221,6 +251,33 @@
   color: #ff7043;
 }
 
+.action-buttons {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  width: 100%;
+}
+
+.back-btn-inline {
+  background: #dc3545;
+  color: white;
+  border: none;
+  padding: 0.9rem 1.5rem;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s;
+  white-space: nowrap;
+}
+
+.back-btn-inline:hover {
+  background: #ff7043;
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 112, 67, 0.3);
+}
+
 .buy-now-btn {
   background: #ff7043;
   color: white;
@@ -233,7 +290,7 @@
   transition: all 0.3s;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  width: 100%;
+  flex: 1;
 }
 
 .buy-now-btn:hover:not(:disabled) {

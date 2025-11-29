@@ -17,22 +17,59 @@ export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(localStorage.getItem('token'));
 
   useEffect(() => {
+    // On mount, check if token exists and fetch user
+    const storedToken = localStorage.getItem('token');
+    if (storedToken) {
+      setToken(storedToken);
+      axios.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`;
+      fetchUser();
+    } else {
+      // If no token, ensure user is null
+      setUser(null);
+      setToken(null);
+      delete axios.defaults.headers.common['Authorization'];
+      setLoading(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Run only on mount
+  
+  useEffect(() => {
     if (token) {
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       fetchUser();
     } else {
+      // If no token, ensure user is null
+      setUser(null);
       setLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
   const fetchUser = async () => {
     try {
       const res = await axios.get('http://localhost:5000/api/auth/me');
-      setUser(res.data.user);
+      const fetchedUser = res.data.user;
+      console.log('Fetched user data on page load:', fetchedUser);
+      console.log('User name:', fetchedUser?.name, 'User email:', fetchedUser?.email, 'User role:', fetchedUser?.role);
+      
+      // Only set user if we got valid data
+      if (fetchedUser && fetchedUser.id) {
+        setUser(fetchedUser);
+      } else {
+        console.error('Invalid user data received:', fetchedUser);
+        // Clear invalid token
+        localStorage.removeItem('token');
+        setToken(null);
+        delete axios.defaults.headers.common['Authorization'];
+        setUser(null);
+      }
     } catch (error) {
+      console.error('Error fetching user:', error);
+      // Token is invalid or expired - clear it
       localStorage.removeItem('token');
       setToken(null);
       delete axios.defaults.headers.common['Authorization'];
+      setUser(null);
     } finally {
       setLoading(false);
     }
@@ -56,11 +93,20 @@ export const AuthProvider = ({ children }) => {
         };
       }
 
+      // Clear old user state and token before login
+      setUser(null);
+      localStorage.removeItem('token');
+      delete axios.defaults.headers.common['Authorization'];
+
       const res = await axios.post('http://localhost:5000/api/auth/login', {
         email,
         password
       });
       const { token: newToken, user: userData } = res.data;
+      console.log('Login successful - user data:', userData);
+      console.log('User name:', userData?.name, 'User email:', userData?.email, 'User role:', userData?.role);
+      
+      // Set new token and user data
       localStorage.setItem('token', newToken);
       setToken(newToken);
       setUser(userData);
@@ -127,10 +173,24 @@ export const AuthProvider = ({ children }) => {
 
   const refreshUser = async () => {
     try {
+      const currentToken = localStorage.getItem('token');
+      if (!currentToken) {
+        setUser(null);
+        setToken(null);
+        return;
+      }
+      axios.defaults.headers.common['Authorization'] = `Bearer ${currentToken}`;
       const res = await axios.get('http://localhost:5000/api/auth/me');
-      setUser(res.data.user);
+      const fetchedUser = res.data.user;
+      console.log('User refreshed:', fetchedUser);
+      setUser(fetchedUser);
     } catch (error) {
       console.error('Error refreshing user:', error);
+      // Clear invalid token
+      localStorage.removeItem('token');
+      setToken(null);
+      setUser(null);
+      delete axios.defaults.headers.common['Authorization'];
     }
   };
 

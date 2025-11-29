@@ -546,31 +546,43 @@ const AdminPanel = () => {
   };
 
   const handlePaymentDone = async (orderId, paymentId) => {
-    if (!window.confirm('Mark this payment as done? This will update the payment status to "paid".')) {
+    if (!paymentId) {
+      alert('Payment ID not found. Cannot process payment.');
       return;
     }
+    
+    if (!window.confirm('Verify this payment and set order status to "processing"? The user will receive a notification that their payment has been received and order is being processed.')) {
+      return;
+    }
+    
     try {
+      // Update payment status to paid and set order status to processing (backend handles both)
       await axios.put(`http://localhost:5000/api/payments/${paymentId}/status`, {
-        status: 'paid'
+        status: 'paid',
+        setOrderStatus: 'processing'
       });
-      // Also update order status to confirmed if it's still pending
-      await axios.put(`http://localhost:5000/api/orders/${orderId}/status`, {
-        orderStatus: 'confirmed'
-      });
-      fetchOrders();
-      alert('Payment marked as done! Order status updated to confirmed.');
       
-      // Dispatch events to notify user
+      // Refresh orders to show updated status
+      await fetchOrders();
+      
+      alert('Payment verified! Order status set to "processing". User has been notified.');
+      
+      // Dispatch events to notify user (for real-time updates if user has the page open)
       window.dispatchEvent(new Event('paymentVerified'));
       window.dispatchEvent(new Event('notificationUpdated'));
+      window.dispatchEvent(new Event('orderStatusUpdated'));
+      // Store events in localStorage for cross-tab communication (keep for 2 seconds)
       localStorage.setItem('paymentVerified', Date.now().toString());
       localStorage.setItem('notificationUpdated', Date.now().toString());
+      localStorage.setItem('orderStatusUpdated', Date.now().toString());
       setTimeout(() => {
         localStorage.removeItem('paymentVerified');
         localStorage.removeItem('notificationUpdated');
-      }, 100);
+        localStorage.removeItem('orderStatusUpdated');
+      }, 2000);
     } catch (error) {
-      alert(error.response?.data?.message || 'Error updating payment status');
+      console.error('Error updating payment status:', error);
+      alert(error.response?.data?.message || 'Error verifying payment. Please try again.');
     }
   };
 
@@ -1137,27 +1149,41 @@ const AdminPanel = () => {
                                     ? '💳 Online (Payment Done)' 
                                     : '💳 Online'}
                               </span>
-                              {order.paymentMethod === 'online' && order.paymentStatus === 'pending' && (
+                              {/* Show Payment Done button for all online payments */}
+                              {order.paymentMethod === 'online' && (
                                 <button
                                   onClick={() => handlePaymentDone(order._id, order.payment?._id || order.payment)}
                                   className="payment-done-btn"
                                   style={{
                                     width: '100%',
                                     padding: '0.5rem',
-                                    backgroundColor: '#4CAF50',
+                                    backgroundColor: order.orderStatus === 'processing' ? '#667eea' : '#4CAF50',
                                     color: 'white',
                                     border: 'none',
                                     borderRadius: '4px',
-                                    cursor: 'pointer',
+                                    cursor: order.orderStatus === 'processing' ? 'default' : 'pointer',
                                     fontWeight: 600,
                                     fontSize: '0.85rem',
                                     marginTop: '0.25rem',
-                                    transition: 'all 0.3s'
+                                    transition: 'all 0.3s',
+                                    opacity: order.orderStatus === 'processing' ? 0.8 : 1
                                   }}
-                                  onMouseEnter={(e) => e.target.style.backgroundColor = '#45a049'}
-                                  onMouseLeave={(e) => e.target.style.backgroundColor = '#4CAF50'}
+                                  onMouseEnter={(e) => {
+                                    if (order.orderStatus !== 'processing') {
+                                      e.target.style.backgroundColor = '#45a049';
+                                    }
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    if (order.orderStatus !== 'processing') {
+                                      e.target.style.backgroundColor = '#4CAF50';
+                                    }
+                                  }}
+                                  disabled={order.orderStatus === 'processing'}
+                                  title={order.orderStatus === 'processing' ? 'Order is already being processed' : 'Click to verify payment and set order status to processing'}
                                 >
-                                  ✓ Payment Done
+                                  {order.orderStatus === 'processing' 
+                                    ? '✓ Processing' 
+                                    : '✓ Payment Done'}
                                 </button>
                               )}
                             </div>

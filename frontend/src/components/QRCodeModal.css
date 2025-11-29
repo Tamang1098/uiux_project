@@ -30,16 +30,26 @@
   position: absolute;
   top: 1rem;
   right: 1rem;
-  background: none;
+  background: rgba(255, 255, 255, 0.9);
   border: none;
-  font-size: 2rem;
+  font-size: 1.8rem;
   cursor: pointer;
-  color: #999;
-  transition: color 0.3s;
+  color: #666;
+  transition: all 0.3s;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  z-index: 100;
 }
 
 .qr-modal-close:hover {
-  color: #333;
+  background: #dc3545;
+  color: white;
+  transform: rotate(90deg);
 }
 
 .qr-modal-content h2 {
@@ -75,6 +85,7 @@
   justify-content: center;
   align-items: center;
   min-height: 150px;
+  position: relative;
 }
 
 .qr-code-image {
@@ -87,7 +98,6 @@
   padding: 0.5rem;
   background: white;
   display: block;
-  margin: 0 auto;
 }
 
 .qr-loading,
@@ -127,7 +137,7 @@
 
 .qr-payment-done-btn {
   width: 100%;
-  background: #28a745;
+  background: #ff7043;
   color: white;
   border: none;
   padding: 0.6rem;
@@ -139,29 +149,11 @@
 }
 
 .qr-payment-done-btn:hover {
-  background: #218838;
+  background: #ff5722;
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4);
+  box-shadow: 0 4px 12px rgba(255, 112, 67, 0.4);
 }
 
-.qr-back-btn {
-  width: 100%;
-  background: #dc3545;
-  color: white;
-  border: none;
-  padding: 0.6rem;
-  border-radius: 8px;
-  font-weight: 700;
-  font-size: 0.9rem;
-  cursor: pointer;
-  transition: all 0.3s;
-}
-
-.qr-back-btn:hover {
-  background: #c82333;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(220, 53, 69, 0.4);
-}
 
 .qr-close-btn {
   width: 100%;

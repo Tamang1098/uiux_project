@@ -18,6 +18,7 @@ const ProfileDropdown = ({ user }) => {
   });
 
   useEffect(() => {
+    console.log('ProfileDropdown - user prop:', user);
     if (user) {
       setFormData(prev => ({
         ...prev,
