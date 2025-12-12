@@ -38,7 +38,7 @@ const createDefaultAdmin = async () => {
           }
         }
       );
-      // console.log('ℹ️  Admin user already exists - Password reset to: 12345678');
+      console.log('ℹ️  Admin user already exists - Password reset to: 12345678');
     }
   } catch (error) {
     console.error('Error creating default admin:', error);

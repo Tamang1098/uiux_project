@@ -206,7 +206,7 @@
 
 /* Products Section */
 .products-section {
-  padding: 3rem 0;
+  padding: 5px 0;
   background: #fff;
   margin-top: 1rem;
 }
@@ -426,8 +426,8 @@
 
 /* Show Products Section */
 .show-products-section {
-  margin-top: 1.5rem;
-  padding-top: 1.5rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
   border-top: 2px solid #f0f0f0;
 }
 
