@@ -7,6 +7,7 @@ import AdminNavbar from './components/admin/AdminNavbar';
 import UserNavbar from './components/user/UserNavbar';
 import UserWelcome from './components/UserWelcome';
 import AdminLogin from './components/AdminLogin';
+import Footer from './components/Footer';
 import LandingPage from './pages/LandingPage';
 import AdminPanel from './pages/AdminPanel';
 import ProductDetail from './pages/ProductDetail';
@@ -23,54 +24,60 @@ function App() {
       <ToastProvider>
         <AuthProvider>
           <Router>
-        <div className="App">
-          <Routes>
-            <Route path="/admin/login" element={<AdminLogin />} />
-            <Route path="/" element={
-              <>
-                <UserNavbar />
-                <LandingPage />
-              </>
-            } />
-            <Route path="/product/:id" element={
-              <>
-                <UserNavbar />
-                <ProductDetail />
-              </>
-            } />
-            <Route path="/admin" element={
-              <>
-                <AdminNavbar />
-                <UserWelcome />
-                <AdminPanel />
-              </>
-            } />
-            <Route path="/cart" element={
-              <>
-                <UserNavbar />
-                <Cart />
-              </>
-            } />
-            <Route path="/checkout" element={
-              <>
-                <UserNavbar />
-                <Checkout />
-              </>
-            } />
-            <Route path="/orders" element={
-              <>
-                <UserNavbar />
-                <OrderHistory />
-              </>
-            } />
-            <Route path="/orders/:id" element={
-              <>
-                <UserNavbar />
-                <OrderDetails />
-              </>
-            } />
-          </Routes>
-        </div>
+            <div className="App">
+              <Routes>
+                <Route path="/admin/login" element={<AdminLogin />} />
+                <Route path="/" element={
+                  <>
+                    <UserNavbar />
+                    <LandingPage />
+                    <Footer />
+                  </>
+                } />
+                <Route path="/product/:id" element={
+                  <>
+                    <UserNavbar />
+                    <ProductDetail />
+                    <Footer />
+                  </>
+                } />
+                <Route path="/admin" element={
+                  <>
+                    <AdminNavbar />
+                    <UserWelcome />
+                    <AdminPanel />
+                  </>
+                } />
+                <Route path="/cart" element={
+                  <>
+                    <UserNavbar />
+                    <Cart />
+                    <Footer />
+                  </>
+                } />
+                <Route path="/checkout" element={
+                  <>
+                    <UserNavbar />
+                    <Checkout />
+                    <Footer />
+                  </>
+                } />
+                <Route path="/orders" element={
+                  <>
+                    <UserNavbar />
+                    <OrderHistory />
+                    <Footer />
+                  </>
+                } />
+                <Route path="/orders/:id" element={
+                  <>
+                    <UserNavbar />
+                    <OrderDetails />
+                    <Footer />
+                  </>
+                } />
+              </Routes>
+            </div>
           </Router>
         </AuthProvider>
       </ToastProvider>

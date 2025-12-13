@@ -75,14 +75,25 @@ const ProductReview = ({ product, onReviewAdded }) => {
     ? product.reviews.reduce((sum, r) => sum + r.rating, 0) / product.reviews.length
     : product.rating || 0;
 
+  // Don't show reviews section if there are no reviews
+  if (!product.reviews || product.reviews.length === 0) {
+    return null;
+  }
+
   return (
     <div className="product-reviews">
       <div className="reviews-header">
         <h3>Reviews ({product.reviews?.length || 0})</h3>
       </div>
 
+      {!isAuthenticated && (
+        <div className="login-prompt">
+          <p>Please log in to write a review</p>
+        </div>
+      )}
+
       {isAuthenticated && (
-        <button 
+        <button
           className="add-review-btn"
           onClick={() => setShowForm(!showForm)}
         >
@@ -122,36 +133,32 @@ const ProductReview = ({ product, onReviewAdded }) => {
       )}
 
       <div className="reviews-list">
-        {product.reviews && product.reviews.length > 0 ? (
-          product.reviews.map((review, index) => (
-            <div key={review._id || index} className="review-item">
-              <div className="review-header">
-                <span className="reviewer-name">{review.user?.name || 'Anonymous'}</span>
-                <span className="review-rating">
-                  {'★'.repeat(review.rating)}
-                  {'☆'.repeat(5 - review.rating)}
-                </span>
-                <span className="review-date">
-                  {new Date(review.createdAt).toLocaleDateString()}
-                </span>
-                {isAdmin && (
-                  <button
-                    className="delete-review-btn"
-                    onClick={() => handleDeleteReview(review._id)}
-                    title="Delete Review (Admin Only)"
-                  >
-                    ×
-                  </button>
-                )}
-              </div>
-              {review.comment && (
-                <p className="review-comment">{review.comment}</p>
+        {product.reviews.map((review, index) => (
+          <div key={review._id || index} className="review-item">
+            <div className="review-header">
+              <span className="reviewer-name">{review.user?.name || 'Anonymous'}</span>
+              <span className="review-rating">
+                {'★'.repeat(review.rating)}
+                {'☆'.repeat(5 - review.rating)}
+              </span>
+              <span className="review-date">
+                {new Date(review.createdAt).toLocaleDateString()}
+              </span>
+              {isAdmin && (
+                <button
+                  className="delete-review-btn"
+                  onClick={() => handleDeleteReview(review._id)}
+                  title="Delete Review (Admin Only)"
+                >
+                  ×
+                </button>
               )}
             </div>
-          ))
-        ) : (
-          <p className="no-reviews">No reviews yet. Be the first to review!</p>
-        )}
+            {review.comment && (
+              <p className="review-comment">{review.comment}</p>
+            )}
+          </div>
+        ))}
       </div>
     </div>
   );

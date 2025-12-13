@@ -17,7 +17,7 @@ const LandingPage = () => {
   const [featuredProducts, setFeaturedProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState('all');
-  const [productsPerPage, setProductsPerPage] = useState(20);
+  const [productsPerPage, setProductsPerPage] = useState(16);
   const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [showRegisterModal, setShowRegisterModal] = useState(false);
@@ -97,7 +97,7 @@ const LandingPage = () => {
       fetchFeaturedProducts();
       fetchCategories(); // Refresh categories in case they changed
     };
-    
+
     const handleCategoryUpdate = () => {
       console.log('Category update detected, refreshing...');
       fetchCategories();
@@ -109,7 +109,7 @@ const LandingPage = () => {
     window.addEventListener('productUpdated', handleProductUpdate);
     window.addEventListener('categoryUpdated', handleCategoryUpdate);
     window.addEventListener('adminDataUpdated', handleProductUpdate);
-    
+
     // Listen for localStorage changes (cross-tab communication)
     const handleStorageChange = (e) => {
       if (e.key === 'productUpdated' || e.key === 'categoryUpdated' || e.key === 'adminDataUpdated') {
@@ -117,7 +117,7 @@ const LandingPage = () => {
       }
     };
     window.addEventListener('storage', handleStorageChange);
-    
+
     return () => {
       window.removeEventListener('productUpdated', handleProductUpdate);
       window.removeEventListener('categoryUpdated', handleCategoryUpdate);
@@ -153,12 +153,12 @@ const LandingPage = () => {
 
   const filterAndPaginateProducts = () => {
     let filtered = [...allProducts];
-    
+
     // Filter by category
     if (selectedCategory !== 'all') {
       filtered = filtered.filter(product => product.category === selectedCategory);
     }
-    
+
     // Calculate pagination
     const totalPages = Math.ceil(filtered.length / productsPerPage);
     const startIndex = (currentPage - 1) * productsPerPage;
@@ -274,7 +274,7 @@ const LandingPage = () => {
                   </button>
                 ))}
               </div>
-              
+
               {/* Show Products Dropdown */}
               <div className="show-products-section">
                 <label htmlFor="per-page-select" className="show-products-label">{t('showProducts')} ({t('perPage')}):</label>
@@ -284,9 +284,9 @@ const LandingPage = () => {
                   onChange={(e) => setProductsPerPage(Number(e.target.value))}
                   className="show-products-dropdown"
                 >
-                  <option value={20}>20</option>
-                  <option value={30}>30</option>
-                  <option value={40}>40</option>
+                  <option value={16}>16</option>
+                  <option value={28}>28</option>
+                  <option value={36}>36</option>
                 </select>
               </div>
             </div>
@@ -294,7 +294,7 @@ const LandingPage = () => {
 
           {/* Main Content Area */}
           <div className="main-content">
-           
+
             {products.length === 0 ? (
               <div className="no-products">
                 <p>{t('noProducts')}{selectedCategory !== 'all' ? ` ${t('inThisCategory')}` : ''}. {t('adminCanAdd')}</p>

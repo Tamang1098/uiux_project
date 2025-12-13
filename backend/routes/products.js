@@ -50,6 +50,41 @@ router.get('/:id', async (req, res) => {
   }
 });
 
+// Get related products
+router.get('/:id/related', async (req, res) => {
+  try {
+    const product = await Product.findById(req.params.id);
+    if (!product) {
+      return res.status(404).json({ message: 'Product not found' });
+    }
+
+    // Find products in the same category, excluding the current product
+    let relatedProducts = await Product.find({
+      category: product.category,
+      _id: { $ne: product._id },
+      status: 'active'
+    })
+      .limit(4)
+      .sort({ createdAt: -1 });
+
+    // If we don't have enough related products, fill with random products
+    if (relatedProducts.length < 4) {
+      const additionalProducts = await Product.find({
+        _id: { $ne: product._id, $nin: relatedProducts.map(p => p._id) },
+        status: 'active'
+      })
+        .limit(4 - relatedProducts.length)
+        .sort({ createdAt: -1 });
+      
+      relatedProducts = [...relatedProducts, ...additionalProducts];
+    }
+
+    res.json(relatedProducts);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 // Get featured products
 router.get('/featured/all', async (req, res) => {
   try {

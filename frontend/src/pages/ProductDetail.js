@@ -9,6 +9,7 @@ import QRCodeModal from '../components/QRCodeModal';
 import OrderSuccessModal from '../components/OrderSuccessModal';
 import LoginModal from '../components/LoginModal';
 import RegisterModal from '../components/RegisterModal';
+import RelatedProducts from '../components/RelatedProducts';
 import './ProductDetail.css';
 
 const ProductDetail = () => {
@@ -30,6 +31,7 @@ const ProductDetail = () => {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showRegisterModal, setShowRegisterModal] = useState(false);
   const [pendingBuyNow, setPendingBuyNow] = useState(false);
+  const [relatedProducts, setRelatedProducts] = useState([]);
 
   useEffect(() => {
     fetchProduct();
@@ -96,7 +98,7 @@ const ProductDetail = () => {
     window.addEventListener('productUpdated', handleProductUpdate);
     window.addEventListener('adminDataUpdated', handleProductUpdate);
     window.addEventListener('reviewUpdated', handleProductUpdate);
-    
+
     // Listen for product-specific updates
     const handleProductSpecificUpdate = (e) => {
       const updatedProductId = e.detail?.productId || e.newValue;
@@ -105,7 +107,7 @@ const ProductDetail = () => {
       }
     };
     window.addEventListener('productUpdatedId', handleProductSpecificUpdate);
-    
+
     // Listen for localStorage changes (cross-tab communication)
     const handleStorageChange = (e) => {
       if (e.key === 'productUpdated' || e.key === 'adminDataUpdated' || e.key === 'reviewUpdated') {
@@ -117,7 +119,7 @@ const ProductDetail = () => {
       }
     };
     window.addEventListener('storage', handleStorageChange);
-    
+
     // Poll for changes when page is visible (backup method - checks every 5 seconds)
     let pollInterval;
     const startPolling = () => {
@@ -128,12 +130,12 @@ const ProductDetail = () => {
         }
       }, 5000);
     };
-    
+
     // Start polling when page becomes visible
     if (!document.hidden) {
       startPolling();
     }
-    
+
     const handleVisibilityChange = () => {
       if (document.hidden) {
         clearInterval(pollInterval);
@@ -143,15 +145,15 @@ const ProductDetail = () => {
         startPolling();
       }
     };
-    
+
     // Also refresh when window gets focus
     const handleWindowFocus = () => {
       handleProductUpdate();
     };
-    
+
     document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('focus', handleWindowFocus);
-    
+
     return () => {
       window.removeEventListener('productUpdated', handleProductUpdate);
       window.removeEventListener('adminDataUpdated', handleProductUpdate);
@@ -169,9 +171,20 @@ const ProductDetail = () => {
       const res = await axios.get(`http://localhost:5000/api/products/${id}`);
       setProduct(res.data);
       setLoading(false);
+      // Fetch related products
+      fetchRelatedProducts();
     } catch (error) {
       console.error('Error fetching product:', error);
       setLoading(false);
+    }
+  };
+
+  const fetchRelatedProducts = async () => {
+    try {
+      const res = await axios.get(`http://localhost:5000/api/products/${id}/related`);
+      setRelatedProducts(res.data);
+    } catch (error) {
+      console.error('Error fetching related products:', error);
     }
   };
 
@@ -292,95 +305,155 @@ const ProductDetail = () => {
 
   return (
     <div className="product-detail-page">
-      <div className="container-small">
-        <div className="product-detail-content">
-          <div className="product-image-section">
-            <div className="main-image-container">
-              <img
-                src={getImageUrl(productImages[selectedImageIndex])}
-                alt={product.name}
-                className="product-main-image"
-                onError={(e) => {
-                  e.target.src = 'https://via.placeholder.com/500';
-                }}
-              />
-            </div>
-            {productImages.length > 1 && (
-              <div className="image-thumbnails">
-                {productImages.map((img, index) => (
+      <div className="container-full">
+        <div className="product-layout">
+          <div className="product-main-section">
+            <div className="product-detail-content">
+              <div className="product-image-section">
+                <div className="main-image-container">
                   <img
-                    key={index}
-                    src={getImageUrl(img)}
-                    alt={`${product.name} ${index + 1}`}
-                    className={`thumbnail ${selectedImageIndex === index ? 'active' : ''}`}
-                    onClick={() => setSelectedImageIndex(index)}
+                    src={getImageUrl(productImages[selectedImageIndex])}
+                    alt={product.name}
+                    className="product-main-image"
                     onError={(e) => {
-                      e.target.src = 'https://via.placeholder.com/100';
+                      e.target.src = 'https://via.placeholder.com/500';
+                    }}
+                    onMouseMove={(e) => {
+                      const container = e.currentTarget.parentElement;
+                      const lens = container.querySelector('.zoom-lens');
+                      const result = container.querySelector('.zoom-result');
+
+                      if (!lens || !result) return;
+
+                      const img = e.currentTarget;
+                      const rect = img.getBoundingClientRect();
+
+                      // Calculate cursor position relative to image
+                      let x = e.clientX - rect.left;
+                      let y = e.clientY - rect.top;
+
+                      // Prevent lens from going outside image bounds
+                      const lensWidth = lens.offsetWidth / 2;
+                      const lensHeight = lens.offsetHeight / 2;
+
+                      x = Math.max(lensWidth, Math.min(x, rect.width - lensWidth));
+                      y = Math.max(lensHeight, Math.min(y, rect.height - lensHeight));
+
+                      // Position the lens
+                      lens.style.left = (x - lensWidth) + 'px';
+                      lens.style.top = (y - lensHeight) + 'px';
+
+                      // Show lens and result
+                      lens.style.display = 'block';
+                      result.style.display = 'block';
+
+                      // Calculate zoom with reduced magnification (2x zoom instead of full ratio)
+                      const zoomFactor = 2;
+                      
+                      // Set background position for zoomed image
+                      result.style.backgroundImage = `url('${img.src}')`;
+                      result.style.backgroundSize = (img.width * zoomFactor) + 'px ' + (img.height * zoomFactor) + 'px';
+                      result.style.backgroundPosition = '-' + ((x - lensWidth) * zoomFactor) + 'px -' + ((y - lensHeight) * zoomFactor) + 'px';
+                    }}
+                    onMouseEnter={(e) => {
+                      const container = e.currentTarget.parentElement;
+                      const lens = container.querySelector('.zoom-lens');
+                      const result = container.querySelector('.zoom-result');
+                      if (lens) lens.style.display = 'block';
+                      if (result) result.style.display = 'block';
+                    }}
+                    onMouseLeave={(e) => {
+                      const container = e.currentTarget.parentElement;
+                      const lens = container.querySelector('.zoom-lens');
+                      const result = container.querySelector('.zoom-result');
+                      if (lens) lens.style.display = 'none';
+                      if (result) result.style.display = 'none';
                     }}
                   />
-                ))}
+                  <div className="zoom-lens"></div>
+                  <div className="zoom-result"></div>
+                </div>
+                {productImages.length > 1 && (
+                  <div className="image-thumbnails">
+                    {productImages.map((img, index) => (
+                      <img
+                        key={index}
+                        src={getImageUrl(img)}
+                        alt={`${product.name} ${index + 1}`}
+                        className={`thumbnail ${selectedImageIndex === index ? 'active' : ''}`}
+                        onClick={() => setSelectedImageIndex(index)}
+                        onError={(e) => {
+                          e.target.src = 'https://via.placeholder.com/100';
+                        }}
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-          <div className="product-info-section">
-            <h1 className="product-title">{product.name}</h1>
-            <div className="product-price-section">
-              <span className="product-price">Rs. {product.price}</span>
-            </div>
-            <div className="stock-info">
-              <span className="stock-label">{t('stock')}:</span>
-              <span className={`stock-value ${availableStock > 0 ? 'in-stock' : 'out-of-stock'}`}>
-                {availableStock > 0 ? (
-                  quantity > 0 ? `${remainingStock} ${t('remaining')} (${availableStock} total)` : `${availableStock} ${t('available')}`
-                ) : t('outOfStock')}
-              </span>
-            </div>
-            <div className="product-actions">
-              <div className="quantity-selector">
-                <label>{t('quantity')}:</label>
-                <div className="quantity-controls">
-                  <button
-                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                    className="quantity-btn"
-                    disabled={quantity <= 1}
-                  >
-                    -
-                  </button>
-                  <span className="quantity-value">{quantity}</span>
-                  <button
-                    onClick={() => {
-                      if (quantity < availableStock) {
-                        setQuantity(quantity + 1);
-                      }
-                    }}
-                    className="quantity-btn"
-                    disabled={quantity >= availableStock || availableStock === 0}
-                  >
-                    +
-                  </button>
+              <div className="product-info-section">
+                <h1 className="product-title">{product.name}</h1>
+                <div className="product-price-section">
+                  <span className="product-price">Rs. {product.price}</span>
+                </div>
+                <div className="stock-info">
+                  <span className="stock-label">{t('stock')}:</span>
+                  <span className={`stock-value ${availableStock > 0 ? 'in-stock' : 'out-of-stock'}`}>
+                    {availableStock > 0 ? (
+                      quantity > 0 ? `${remainingStock} ${t('remaining')} (${availableStock} total)` : `${availableStock} ${t('available')}`
+                    ) : t('outOfStock')}
+                  </span>
+                </div>
+                <div className="product-actions">
+                  <div className="quantity-selector">
+                    <label>{t('quantity')}:</label>
+                    <div className="quantity-controls">
+                      <button
+                        onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                        className="quantity-btn"
+                        disabled={quantity <= 1}
+                      >
+                        -
+                      </button>
+                      <span className="quantity-value">{quantity}</span>
+                      <button
+                        onClick={() => {
+                          if (quantity < availableStock) {
+                            setQuantity(quantity + 1);
+                          }
+                        }}
+                        className="quantity-btn"
+                        disabled={quantity >= availableStock || availableStock === 0}
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                  <div className="total-price-section">
+                    <span className="total-label">{t('total')}:</span>
+                    <span className="total-price">Rs. {totalPrice.toFixed(2)}</span>
+                  </div>
+                  <div className="action-buttons">
+                    <button onClick={() => navigate('/')} className="back-btn-inline">
+                      ← Back to Product Page
+                    </button>
+                    <button
+                      className="buy-now-btn"
+                      onClick={handleBuyNow}
+                      disabled={processing || availableStock === 0 || quantity === 0}
+                    >
+                      {processing ? t('processing') : t('buyNow')}
+                    </button>
+                  </div>
                 </div>
               </div>
-              <div className="total-price-section">
-                <span className="total-label">{t('total')}:</span>
-                <span className="total-price">Rs. {totalPrice.toFixed(2)}</span>
-              </div>
-              <div className="action-buttons">
-                <button onClick={() => navigate(-1)} className="back-btn-inline">
-                  ← Back to Product Page
-                </button>
-                <button
-                  className="buy-now-btn"
-                  onClick={handleBuyNow}
-                  disabled={processing || availableStock === 0 || quantity === 0}
-                >
-                  {processing ? t('processing') : t('buyNow')}
-                </button>
-              </div>
+            </div>
+            <div className="product-reviews-section">
+              <ProductReview product={product} onReviewAdded={fetchProduct} />
             </div>
           </div>
-        </div>
-        <div className="product-reviews-section">
-          <ProductReview product={product} onReviewAdded={fetchProduct} />
+          <div className="product-sidebar">
+            <RelatedProducts products={relatedProducts} currentProductId={product._id} />
+          </div>
         </div>
       </div>
 
