@@ -804,3 +804,16 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Footer adjustment for sidebar on landing page */
+.sidebar-page .footer {
+  margin-left: 280px;
+  width: calc(100% - 280px);
+}
+
+@media (max-width: 968px) {
+  .sidebar-page .footer {
+    margin-left: 0;
+    width: 100%;
+  }
+}

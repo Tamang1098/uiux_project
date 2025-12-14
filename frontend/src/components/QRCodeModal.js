@@ -1,5 +1,4 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useToast } from '../context/ToastContext';
 import { useLanguage } from '../context/LanguageContext';
 import axios from 'axios';
@@ -10,11 +9,9 @@ import './QRCodeModal.css';
 import qrCodeImageSrc from '../assets/paymentQR.jpg';
 
 const QRCodeModal = ({ isOpen, onClose, paymentId, amount, orderId }) => {
-  // DO NOT use navigate in handleClose - only use it in handlePaymentDone
-  const navigate = useNavigate();
   const { showToast } = useToast();
   const { t } = useLanguage();
-  
+
   // Track if payment was successfully confirmed - use ref to persist across renders
   const paymentConfirmedRef = useRef(false);
   // Track navigation timeout to cancel it if modal closes
@@ -30,36 +27,36 @@ const QRCodeModal = ({ isOpen, onClose, paymentId, amount, orderId }) => {
     if (isClosingRef.current) {
       return;
     }
-    
+
     // Reset the flag and clear any existing timeout
     paymentConfirmedRef.current = false;
     if (navigationTimeoutRef.current) {
       clearTimeout(navigationTimeoutRef.current);
       navigationTimeoutRef.current = null;
     }
-    
+
     try {
       // Mark payment as done
       const res = await axios.post(`http://localhost:5000/api/payments/${paymentId}/confirm`);
-      
+
       // Check again if modal is closing - if user clicked X during API call, don't navigate
       if (isClosingRef.current) {
         return;
       }
-      
+
       // Mark payment as confirmed - ONLY if API call succeeds
       paymentConfirmedRef.current = true;
-      
+
       // Get order number from response if available
       if (res?.data?.orderNumber || res?.data?.order?.orderNumber) {
         setOrderNumber(res.data.orderNumber || res.data.order.orderNumber);
       }
-      
+
       // Close QR modal first
       if (onClose) {
         onClose();
       }
-      
+
       // Show success popup modal (like login modal style)
       if (!isClosingRef.current) {
         setShowSuccessModal(true);
@@ -82,21 +79,21 @@ const QRCodeModal = ({ isOpen, onClose, paymentId, amount, orderId }) => {
         e.stopImmediatePropagation();
       }
     }
-    
+
     console.log('X button clicked - cancelling order and closing modal WITHOUT navigation');
-    
+
     // CRITICAL: Mark that we're closing IMMEDIATELY - this prevents any navigation
     isClosingRef.current = true;
-    
+
     // CRITICAL: Cancel any pending navigation FIRST - do this immediately
     if (navigationTimeoutRef.current) {
       clearTimeout(navigationTimeoutRef.current);
       navigationTimeoutRef.current = null;
     }
-    
+
     // Reset payment confirmation flag - prevent any navigation
     paymentConfirmedRef.current = false;
-    
+
     // Delete the order if it was created (user cancelled payment)
     // Do this in background - don't wait for it to complete
     if (orderId) {
@@ -113,26 +110,26 @@ const QRCodeModal = ({ isOpen, onClose, paymentId, amount, orderId }) => {
     } else {
       console.log('No orderId provided - skipping order deletion');
     }
-    
+
     // Close modal - this should NOT trigger any navigation
     // The onClose callback should only set modal state to false
     if (onClose) {
       onClose();
     }
-    
+
     // CRITICAL: Do NOT navigate anywhere - user stays on checkout/product page
     // ABSOLUTELY NO navigate() call here - we explicitly avoid it
     // Return immediately - no navigation will happen
     // The order is deleted, modal is closed, user stays on current page
     return;
   };
-  
+
   // Cleanup timeout when component unmounts or modal closes
   useEffect(() => {
     if (!isOpen) {
       // Modal is closing - cancel any pending navigation IMMEDIATELY
       isClosingRef.current = true;
-      
+
       if (navigationTimeoutRef.current) {
         clearTimeout(navigationTimeoutRef.current);
         navigationTimeoutRef.current = null;
@@ -142,7 +139,7 @@ const QRCodeModal = ({ isOpen, onClose, paymentId, amount, orderId }) => {
       // Modal is opening - reset closing flag
       isClosingRef.current = false;
     }
-    
+
     return () => {
       // Cleanup on unmount
       if (navigationTimeoutRef.current) {
@@ -159,8 +156,8 @@ const QRCodeModal = ({ isOpen, onClose, paymentId, amount, orderId }) => {
       {isOpen && (
         <div className="qr-modal-overlay" onClick={handleClose}>
           <div className="qr-modal-content" onClick={(e) => e.stopPropagation()}>
-            <button 
-              className="qr-modal-close" 
+            <button
+              className="qr-modal-close"
               onClick={handleClose}
               type="button"
             >×</button>
@@ -176,9 +173,9 @@ const QRCodeModal = ({ isOpen, onClose, paymentId, amount, orderId }) => {
               <p className="qr-remarks-text">{t('remarks')}</p>
             </div>
             <div className="qr-code-container">
-              <img 
-                src={qrCodeImageSrc} 
-                alt="QR Code" 
+              <img
+                src={qrCodeImageSrc}
+                alt="QR Code"
                 className="qr-code-image"
                 onError={(e) => {
                   // Fallback if image not found
@@ -195,7 +192,7 @@ const QRCodeModal = ({ isOpen, onClose, paymentId, amount, orderId }) => {
           </div>
         </div>
       )}
-      
+
       {/* Success Modal - shows after payment is done, rendered outside QR modal */}
       <OrderSuccessModal
         isOpen={showSuccessModal}

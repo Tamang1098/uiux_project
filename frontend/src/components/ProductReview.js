@@ -71,6 +71,7 @@ const ProductReview = ({ product, onReviewAdded }) => {
     }
   };
 
+  // eslint-disable-next-line no-unused-vars
   const averageRating = product.reviews && product.reviews.length > 0
     ? product.reviews.reduce((sum, r) => sum + r.rating, 0) / product.reviews.length
     : product.rating || 0;

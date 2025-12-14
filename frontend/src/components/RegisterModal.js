@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -7,7 +6,6 @@ import './RegisterModal.css';
 
 const RegisterModal = ({ isOpen, onClose, onSwitchToLogin }) => {
   const { register } = useAuth();
-  const navigate = useNavigate();
   const { showToast } = useToast();
   const { t } = useLanguage();
   const [formData, setFormData] = useState({
@@ -51,10 +49,10 @@ const RegisterModal = ({ isOpen, onClose, onSwitchToLogin }) => {
       window.dispatchEvent(new Event('newUserCreated'));
       localStorage.setItem('newUserCreated', Date.now().toString());
       setTimeout(() => localStorage.removeItem('newUserCreated'), 100);
-      
+
       setFormData({ name: '', email: '', phone: '', password: '', confirmPassword: '' });
       showToast(t('registrationSuccess'), 'success');
-      
+
       // Switch to login modal - this will handle closing register modal and opening login modal
       if (onSwitchToLogin) {
         // Call onSwitchToLogin immediately - the parent component will handle timing
@@ -134,9 +132,18 @@ const RegisterModal = ({ isOpen, onClose, onSwitchToLogin }) => {
             />
           </div>
           {error && <div className="error-message">{error}</div>}
-          <button type="submit" className="submit-btn" disabled={loading}>
-            {loading ? t('registering') : t('register')}
-          </button>
+          {loading ? (
+            <div className="auth-progress-container">
+              <div className="auth-progress-bar">
+                <div className="auth-progress-fill"></div>
+              </div>
+              <p className="auth-progress-text">{t('registering')}...</p>
+            </div>
+          ) : (
+            <button type="submit" className="submit-btn">
+              {t('register')}
+            </button>
+          )}
         </form>
         <p className="switch-auth">
           {t('alreadyHaveAccount')}{' '}

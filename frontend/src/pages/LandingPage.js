@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import ProductCard from '../components/ProductCard';
 import RegisterModal from '../components/RegisterModal';
@@ -9,9 +7,7 @@ import LoginModal from '../components/LoginModal';
 import './LandingPage.css';
 
 const LandingPage = () => {
-  const { isAuthenticated, user } = useAuth();
   const { t } = useLanguage();
-  const navigate = useNavigate();
   const [products, setProducts] = useState([]);
   const [allProducts, setAllProducts] = useState([]);
   const [featuredProducts, setFeaturedProducts] = useState([]);
@@ -160,6 +156,7 @@ const LandingPage = () => {
     }
 
     // Calculate pagination
+    // eslint-disable-next-line no-unused-vars
     const totalPages = Math.ceil(filtered.length / productsPerPage);
     const startIndex = (currentPage - 1) * productsPerPage;
     const endIndex = startIndex + productsPerPage;
@@ -313,7 +310,13 @@ const LandingPage = () => {
             {getTotalPages() > 1 && (
               <div className="pagination">
                 <button
-                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  onClick={() => {
+                    setCurrentPage(prev => Math.max(1, prev - 1));
+                    setTimeout(() => {
+                      document.documentElement.scrollTop = 0;
+                      document.body.scrollTop = 0;
+                    }, 100);
+                  }}
                   disabled={currentPage === 1}
                   className="pagination-btn"
                 >
@@ -323,7 +326,13 @@ const LandingPage = () => {
                   {t('page')} {currentPage} {t('of')} {getTotalPages()}
                 </span>
                 <button
-                  onClick={() => setCurrentPage(prev => Math.min(getTotalPages(), prev + 1))}
+                  onClick={() => {
+                    setCurrentPage(prev => Math.min(getTotalPages(), prev + 1));
+                    setTimeout(() => {
+                      document.documentElement.scrollTop = 0;
+                      document.body.scrollTop = 0;
+                    }, 100);
+                  }}
                   disabled={currentPage === getTotalPages()}
                   className="pagination-btn"
                 >

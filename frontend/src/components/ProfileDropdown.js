@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
 import './ProfileDropdown.css';
 
@@ -59,7 +58,7 @@ const ProfileDropdown = ({ user }) => {
         name: formData.name,
         email: formData.email
       });
-      
+
       setSuccess('Profile updated successfully!');
       setFormData({
         ...formData,
@@ -99,7 +98,7 @@ const ProfileDropdown = ({ user }) => {
         currentPassword: formData.currentPassword,
         newPassword: formData.newPassword
       });
-      
+
       setSuccess('Password changed successfully!');
       setFormData({
         ...formData,
@@ -117,7 +116,7 @@ const ProfileDropdown = ({ user }) => {
   return (
     <>
       <div className="profile-dropdown-container">
-        <button 
+        <button
           className="profile-icon-btn"
           onClick={() => setShowDropdown(!showDropdown)}
         >
@@ -137,7 +136,7 @@ const ProfileDropdown = ({ user }) => {
                 <p className="profile-email">{user?.email}</p>
               </div>
             </div>
-            <button 
+            <button
               className="profile-menu-item"
               onClick={() => {
                 setShowProfileModal(true);
@@ -158,7 +157,7 @@ const ProfileDropdown = ({ user }) => {
               ← Back
             </button>
             <h2>Update Profile</h2>
-            
+
             <form onSubmit={handleUpdateProfile} className="profile-form">
               <div className="form-group">
                 <label>Full Name</label>

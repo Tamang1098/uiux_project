@@ -94,6 +94,7 @@
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
   margin-bottom: 1.5rem;
   position: relative;
+  overflow: visible;
 }
 
 .product-image-section {
@@ -126,8 +127,8 @@
 .zoom-lens {
   position: absolute;
   border: 3px solid #ff7043;
-  width: 150px;
-  height: 150px;
+  width: 120px;
+  height: 120px;
   display: none;
   pointer-events: none;
   background-color: rgba(255, 255, 255, 0.3);
@@ -138,18 +139,18 @@
 }
 
 .zoom-result {
-  position: absolute;
-  left: calc(100% + 20px);
-  top: 0;
-  width: 700px;
-  height: 570px;
-  border: 2px solid #ff7043;
-  border-radius: 8px;
+  position: fixed;
+  top: 100px;
+  right: 380px;
+  width: 450px;
+  height: 500px;
+  border: 3px solid #ff7043;
+  border-radius: 12px;
   background-color: white;
   background-repeat: no-repeat;
   display: none;
-  z-index: 80;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  z-index: 100;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
 }
 
 .image-thumbnails {

@@ -28,11 +28,11 @@ function App() {
               <Routes>
                 <Route path="/admin/login" element={<AdminLogin />} />
                 <Route path="/" element={
-                  <>
+                  <div className="sidebar-page">
                     <UserNavbar />
                     <LandingPage />
                     <Footer />
-                  </>
+                  </div>
                 } />
                 <Route path="/product/:id" element={
                   <>

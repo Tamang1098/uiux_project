@@ -5,16 +5,18 @@ import { useLanguage } from '../../context/LanguageContext';
 import axios from 'axios';
 import LoginModal from '../LoginModal';
 import RegisterModal from '../RegisterModal';
+import LogoutModal from '../LogoutModal';
 import ProfileDropdown from '../ProfileDropdown';
 import './UserNavbar.css';
 
 const UserNavbar = () => {
   const { user, logout, isAuthenticated } = useAuth();
-  const { t, language, setLanguage } = useLanguage();
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const location = useLocation();
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showRegisterModal, setShowRegisterModal] = useState(false);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
 
   // On user pages, treat admin as not logged in (hide admin state)
@@ -52,13 +54,13 @@ const UserNavbar = () => {
     fetchNotificationCount();
     // Poll for notifications every 3 seconds for faster updates
     const interval = setInterval(fetchNotificationCount, 3000);
-    
+
     // Listen for notification updates (window events)
     const handleNotificationUpdate = () => {
       fetchNotificationCount();
     };
     window.addEventListener('notificationUpdated', handleNotificationUpdate);
-    
+
     // Listen for localStorage events (cross-tab communication)
     const handleStorageChange = (e) => {
       if (e.key === 'notificationUpdated' || e.key === 'orderStatusUpdated') {
@@ -66,13 +68,13 @@ const UserNavbar = () => {
       }
     };
     window.addEventListener('storage', handleStorageChange);
-    
+
     // Also listen for custom events
     const handleCustomEvent = () => {
       fetchNotificationCount();
     };
     window.addEventListener('orderStatusUpdated', handleCustomEvent);
-    
+
     return () => {
       clearInterval(interval);
       window.removeEventListener('notificationUpdated', handleNotificationUpdate);
@@ -94,19 +96,19 @@ const UserNavbar = () => {
             </div>
           )}
         </div>
-        
+
         <div className="navbar-menu">
           {effectiveIsAuthenticated && effectiveUser ? (
             // Regular user Navbar - Product Page, My Orders, Profile Icon, Logout
             <>
-              <Link 
-                to="/" 
+              <Link
+                to="/"
                 className={`navbar-link ${location.pathname === '/' ? 'active' : ''}`}
               >
                 {t('productPage')}
               </Link>
-              <Link 
-                to="/orders" 
+              <Link
+                to="/orders"
                 className={`navbar-link ${location.pathname === '/orders' ? 'active' : ''}`}
                 style={{ position: 'relative' }}
               >
@@ -118,26 +120,26 @@ const UserNavbar = () => {
                 )}
               </Link>
               <ProfileDropdown user={effectiveUser} />
-              <button onClick={() => { logout(); navigate('/'); }} className="navbar-link navbar-logout">{t('logout')}</button>
+              <button onClick={() => setShowLogoutModal(true)} className="navbar-link navbar-logout">{t('logout')}</button>
             </>
           ) : (
             // Not authenticated - show Login/Register buttons
             <>
-              <a 
-                href="/admin/login" 
-                target="_blank" 
+              <a
+                href="/admin/login"
+                target="_blank"
                 rel="noopener noreferrer"
                 className="navbar-link navbar-admin-login"
               >
                 {t('adminLogin')}
               </a>
-              <button 
+              <button
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
                   console.log('Login button clicked, opening login modal');
                   setShowLoginModal(true);
-                }} 
+                }}
                 className="navbar-link"
                 type="button"
               >
@@ -150,7 +152,7 @@ const UserNavbar = () => {
           )}
         </div>
       </div>
-      
+
       {/* Login Modal */}
       <LoginModal
         isOpen={showLoginModal}
@@ -160,7 +162,7 @@ const UserNavbar = () => {
           setShowRegisterModal(true);
         }}
       />
-      
+
       {/* Register Modal */}
       <RegisterModal
         isOpen={showRegisterModal}
@@ -168,6 +170,16 @@ const UserNavbar = () => {
         onSwitchToLogin={() => {
           setShowRegisterModal(false);
           setShowLoginModal(true);
+        }}
+      />
+
+      {/* Logout Modal */}
+      <LogoutModal
+        isOpen={showLogoutModal}
+        onComplete={() => {
+          setShowLogoutModal(false);
+          logout();
+          navigate('/');
         }}
       />
     </nav>

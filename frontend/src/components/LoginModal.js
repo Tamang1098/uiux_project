@@ -38,13 +38,13 @@ const LoginModal = ({ isOpen, onClose, onSwitchToRegister, skipNavigation = fals
       setFormData({ email: '', password: '' });
       showToast(t('loginSuccess'), 'success');
       onClose();
-      
+
       // Call custom onLoginSuccess callback if provided
       if (onLoginSuccess) {
         onLoginSuccess(result.user);
         return; // Don't navigate if custom callback is provided
       }
-      
+
       // Only navigate if skipNavigation is false
       if (!skipNavigation) {
         // Only navigate after successful login - regular users go to product page, admin goes to admin panel
@@ -72,18 +72,18 @@ const LoginModal = ({ isOpen, onClose, onSwitchToRegister, skipNavigation = fals
 
   // Don't show login modal if not requested to open
   if (!isOpen) return null;
-  
+
   // On user pages, treat admin as not logged in (allow login)
   // On admin pages, if admin is logged in, don't show login form
   const isAdminOnUserPage = isAuthenticated && user?.role === 'admin' && !location.pathname.startsWith('/admin');
   const shouldShowLogin = !isAuthenticated || isAdminOnUserPage;
-  
+
   // If user is already authenticated (and not admin on user page), don't show login modal
   if (!shouldShowLogin) {
     console.log('LoginModal: User already authenticated, not showing login form');
     return null;
   }
-  
+
   console.log('LoginModal: Rendering login form, isOpen:', isOpen, 'isAuthenticated:', isAuthenticated, 'isAdminOnUserPage:', isAdminOnUserPage);
 
   return (
@@ -115,8 +115,8 @@ const LoginModal = ({ isOpen, onClose, onSwitchToRegister, skipNavigation = fals
             />
           </div>
           {error && (
-            <div className="error-message" style={{ 
-              marginTop: '0.5rem', 
+            <div className="error-message" style={{
+              marginTop: '0.5rem',
               marginBottom: '1rem',
               padding: '1rem',
               fontSize: '0.95rem',
@@ -125,11 +125,20 @@ const LoginModal = ({ isOpen, onClose, onSwitchToRegister, skipNavigation = fals
               ⚠️ {error}
             </div>
           )}
-          <button type="submit" className="submit-btn" disabled={loading}>
-            {loading ? t('loggingIn') : t('login')}
-          </button>
+          {loading ? (
+            <div className="auth-progress-container">
+              <div className="auth-progress-bar">
+                <div className="auth-progress-fill"></div>
+              </div>
+              <p className="auth-progress-text">{t('loggingIn')}...</p>
+            </div>
+          ) : (
+            <button type="submit" className="submit-btn">
+              {t('login')}
+            </button>
+          )}
         </form>
-        
+
         <p className="switch-auth">
           {t('dontHaveAccount')}{' '}
           <span onClick={onSwitchToRegister} className="switch-link">{t('register')}</span>

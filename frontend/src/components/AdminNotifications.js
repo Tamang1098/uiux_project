@@ -6,6 +6,7 @@ const AdminNotifications = () => {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [showDropdown, setShowDropdown] = useState(false);
+  // eslint-disable-next-line no-unused-vars
   const [selectedNotification, setSelectedNotification] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [reviewDetails, setReviewDetails] = useState(null);
@@ -59,7 +60,7 @@ const AdminNotifications = () => {
     try {
       const productRes = await axios.get(`http://localhost:5000/api/products/${notification.metadata.productId}`);
       const product = productRes.data;
-      
+
       // Find the specific review - try to match by user ID
       const review = product.reviews?.find(r => {
         const reviewUserId = r.user?._id?.toString() || r.user?.toString();
@@ -108,7 +109,7 @@ const AdminNotifications = () => {
 
   const handleNotificationClick = async (notification) => {
     markAsRead(notification._id);
-    
+
     if (notification.type === 'review') {
       await fetchReviewDetails(notification);
       setSelectedNotification(notification);
@@ -133,7 +134,7 @@ const AdminNotifications = () => {
   return (
     <>
       <div className="admin-notifications-container">
-        <button 
+        <button
           className="notification-icon-btn"
           onClick={() => setShowDropdown(!showDropdown)}
         >
@@ -147,7 +148,7 @@ const AdminNotifications = () => {
           <div className="notification-dropdown">
             <div className="notification-dropdown-header">
               <h3>Notifications</h3>
-              <button 
+              <button
                 className="close-dropdown-btn"
                 onClick={() => setShowDropdown(false)}
               >
@@ -207,22 +208,22 @@ const AdminNotifications = () => {
       {showDetailModal && reviewDetails && (
         <div className="review-detail-modal-overlay" onClick={() => setShowDetailModal(false)}>
           <div className="review-detail-modal" onClick={(e) => e.stopPropagation()}>
-            <button 
+            <button
               className="modal-close-btn"
               onClick={() => setShowDetailModal(false)}
             >
               ×
             </button>
             <h2>Review Details</h2>
-            
+
             {loadingDetails ? (
               <div className="loading-details">Loading...</div>
             ) : (
               <>
                 <div className="review-product-info">
                   <div className="review-product-image">
-                    <img 
-                      src={getImageUrl(reviewDetails.product.image)} 
+                    <img
+                      src={getImageUrl(reviewDetails.product.image)}
                       alt={reviewDetails.product.name}
                       onError={(e) => {
                         e.target.src = 'https://via.placeholder.com/200';

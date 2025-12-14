@@ -32,7 +32,7 @@ export const AuthProvider = ({ children }) => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Run only on mount
-  
+
   useEffect(() => {
     if (token) {
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
@@ -51,7 +51,7 @@ export const AuthProvider = ({ children }) => {
       const fetchedUser = res.data.user;
       console.log('Fetched user data on page load:', fetchedUser);
       console.log('User name:', fetchedUser?.name, 'User email:', fetchedUser?.email, 'User role:', fetchedUser?.role);
-      
+
       // Only set user if we got valid data
       if (fetchedUser && fetchedUser.id) {
         setUser(fetchedUser);
@@ -105,7 +105,7 @@ export const AuthProvider = ({ children }) => {
       const { token: newToken, user: userData } = res.data;
       console.log('Login successful - user data:', userData);
       console.log('User name:', userData?.name, 'User email:', userData?.email, 'User role:', userData?.role);
-      
+
       // Set new token and user data
       localStorage.setItem('token', newToken);
       setToken(newToken);
@@ -117,7 +117,7 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       // Get error message from backend
       const errorMessage = error.response?.data?.message || '';
-      
+
       // Use backend message directly if it's specific (Email is wrong / Password is wrong)
       if (errorMessage === 'Email is wrong' || errorMessage === 'Password is wrong') {
         return {
@@ -125,7 +125,7 @@ export const AuthProvider = ({ children }) => {
           message: errorMessage
         };
       }
-      
+
       // Handle other errors
       let userFriendlyMessage = '';
       if (error.response?.status === 500) {
@@ -147,7 +147,7 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (name, email, password, phone) => {
     try {
-      const res = await axios.post('http://localhost:5000/api/auth/register', {
+      await axios.post('http://localhost:5000/api/auth/register', {
         name,
         email,
         password,

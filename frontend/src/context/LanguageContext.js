@@ -20,7 +20,7 @@ const translations = {
     login: 'Login',
     register: 'Register',
     adminLogin: 'Admin Login',
-    
+
     // Landing Page
     filterByCategory: 'Filter by Category',
     allCategories: 'All Categories',
@@ -33,7 +33,7 @@ const translations = {
     of: 'of',
     products: 'products',
     adminCanAdd: 'Admin can add products from the admin panel',
-    
+
     // Login/Register
     email: 'Email',
     password: 'Password',
@@ -56,7 +56,7 @@ const translations = {
     passwordMinLength: 'Password must be at least 6 characters',
     registrationSuccess: 'Registration successful! Please login to continue.',
     loginSuccess: 'Login successful! Welcome back!',
-    
+
     // Product
     addToCart: 'Add to Cart',
     buyNow: 'Buy Now',
@@ -72,7 +72,7 @@ const translations = {
     processing: 'Processing...',
     productNotFound: 'Product not found',
     loadingProduct: 'Loading product...',
-    
+
     // Cart
     cart: 'Cart',
     yourCart: 'Your Cart',
@@ -88,7 +88,7 @@ const translations = {
     loadingCart: 'Loading cart...',
     errorUpdatingCart: 'Error updating cart',
     errorRemovingItem: 'Error removing item',
-    
+
     // Checkout
     checkout: 'Checkout',
     shippingAddress: 'Shipping Address',
@@ -108,12 +108,11 @@ const translations = {
     errorPlacingOrder: 'Error placing order. Please try again.',
     paymentVerificationProgress: 'Payment verification is in progress. Please wait for admin confirmation.',
     paymentSuccessful: 'Payment successful! Your payment has been verified.',
-    onlinePayment: 'Online Payment',
     totalAmount: 'Total Amount',
     scanQRCode: 'Scan the QR code below to pay',
     remarks: 'In Remarks: Please enter your E-mail',
     paymentDone: 'Payment Done',
-    
+
     // Orders
     orderHistory: 'Order History',
     orderNumber: 'Order Number',
@@ -121,7 +120,6 @@ const translations = {
     orderStatus: 'Order Status',
     orderTotal: 'Order Total',
     viewOrder: 'View Order',
-    viewDetails: 'View Details',
     qty: 'Qty',
     noOrdersYet: "You haven't placed any orders yet.",
     shopNow: 'Shop Now',
@@ -147,8 +145,7 @@ const translations = {
     haveYouCompletedPayment: 'Have you completed the payment? This will confirm your order.',
     paymentConfirmedAlert: 'Payment confirmed! Your order will be processed.',
     errorConfirmingPayment: 'Error confirming payment',
-    phone: 'Phone',
-    
+
     // Common
     perPage: 'per page',
     loading: 'Loading...',

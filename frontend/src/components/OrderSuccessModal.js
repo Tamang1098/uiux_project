@@ -1,28 +1,41 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useLanguage } from '../context/LanguageContext';
 import './OrderSuccessModal.css';
 
-const OrderSuccessModal = ({ isOpen, onClose, orderNumber }) => {
+const OrderSuccessModal = ({ isOpen, onClose }) => {
   const navigate = useNavigate();
-  const { t } = useLanguage();
+  const [progress, setProgress] = useState(0);
 
   useEffect(() => {
     if (isOpen) {
+      // Progress bar animation
+      const duration = 2000; // 2 seconds
+      const interval = 20; // Update every 20ms
+      const increment = (100 / (duration / interval));
+
+      const progressTimer = setInterval(() => {
+        setProgress(prev => {
+          if (prev >= 100) {
+            clearInterval(progressTimer);
+            return 100;
+          }
+          return prev + increment;
+        });
+      }, interval);
+
       // Auto navigate to orders after 2 seconds
-      const timer = setTimeout(() => {
+      const redirectTimer = setTimeout(() => {
         navigate('/orders');
         onClose();
-      }, 2000);
-      
-      return () => clearTimeout(timer);
+      }, duration);
+
+      return () => {
+        clearInterval(progressTimer);
+        clearTimeout(redirectTimer);
+        setProgress(0);
+      };
     }
   }, [isOpen, navigate, onClose]);
-
-  const handleViewOrders = () => {
-    navigate('/orders');
-    onClose();
-  };
 
   if (!isOpen) return null;
 
@@ -31,22 +44,14 @@ const OrderSuccessModal = ({ isOpen, onClose, orderNumber }) => {
       <div className="order-success-modal-content" onClick={(e) => e.stopPropagation()}>
         <button className="order-success-modal-close" onClick={onClose}>×</button>
         <div className="order-success-icon">✓</div>
-        <h2>{t('paymentSuccessful')}</h2>
-        <p className="order-success-message">
-          {orderNumber ? `Order Number: ${orderNumber}` : t('paymentConfirmedMessage')}
-        </p>
-        <p className="order-success-submessage">
-          {t('paymentConfirmedMessage')}
-        </p>
-        <div className="order-success-actions">
-          <button onClick={handleViewOrders} className="order-success-btn">
-            View My Orders
-          </button>
+        <h2>Your Order is Confirmed</h2>
+        <div className="order-progress-bar">
+          <div className="order-progress-fill" style={{ width: `${progress}%` }}></div>
         </div>
+        <p className="redirecting-text">Redirecting to My Orders...</p>
       </div>
     </div>
   );
 };
 
 export default OrderSuccessModal;
-

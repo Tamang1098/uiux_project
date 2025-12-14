@@ -35,6 +35,7 @@ const ProductDetail = () => {
 
   useEffect(() => {
     fetchProduct();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   // Listen for register modal open event (from Buy Now button)
@@ -78,6 +79,7 @@ const ProductDetail = () => {
     if (product) {
       setQuantity(1);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [product?._id]);
 
   useEffect(() => {
@@ -164,6 +166,7 @@ const ProductDetail = () => {
       window.removeEventListener('focus', handleWindowFocus);
       clearInterval(pollInterval);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]); // Re-run when product ID changes
 
   const fetchProduct = async () => {
@@ -349,7 +352,7 @@ const ProductDetail = () => {
 
                       // Calculate zoom with reduced magnification (2x zoom instead of full ratio)
                       const zoomFactor = 2;
-                      
+
                       // Set background position for zoomed image
                       result.style.backgroundImage = `url('${img.src}')`;
                       result.style.backgroundSize = (img.width * zoomFactor) + 'px ' + (img.height * zoomFactor) + 'px';

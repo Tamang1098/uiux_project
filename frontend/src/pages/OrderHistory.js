@@ -28,7 +28,7 @@ const OrderHistory = () => {
       fetchNotifications(true); // Show toast for new notifications
       fetchOrders();
     }, 3000);
-    
+
     // Listen for order status updates from admin - immediate update
     const handleOrderStatusUpdate = () => {
       console.log('Order status update event received - fetching orders and notifications');
@@ -36,7 +36,7 @@ const OrderHistory = () => {
       fetchNotifications(true); // Show toast for new notifications
     };
     window.addEventListener('orderStatusUpdated', handleOrderStatusUpdate);
-    
+
     // Listen for localStorage events (cross-tab communication) - immediate update
     const handleStorageChange = (e) => {
       if (e.key === 'orderStatusUpdated' || e.key === 'paymentVerified' || e.key === 'notificationUpdated') {
@@ -46,14 +46,14 @@ const OrderHistory = () => {
       }
     };
     window.addEventListener('storage', handleStorageChange);
-    
+
     // Listen for notification updates - immediate update
     const handleNotificationUpdate = () => {
       console.log('Notification update event received - fetching notifications');
       fetchNotifications(true); // Show toast for new notifications
     };
     window.addEventListener('notificationUpdated', handleNotificationUpdate);
-    
+
     // Listen for payment verification - immediate update
     const handlePaymentVerified = () => {
       console.log('Payment verified event received - fetching orders and notifications');
@@ -61,7 +61,7 @@ const OrderHistory = () => {
       fetchNotifications(true); // Show toast for payment success
     };
     window.addEventListener('paymentVerified', handlePaymentVerified);
-    
+
     return () => {
       clearInterval(interval);
       window.removeEventListener('orderStatusUpdated', handleOrderStatusUpdate);
@@ -69,6 +69,7 @@ const OrderHistory = () => {
       window.removeEventListener('notificationUpdated', handleNotificationUpdate);
       window.removeEventListener('paymentVerified', handlePaymentVerified);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated, navigate]);
 
   const fetchOrders = async () => {
@@ -86,16 +87,16 @@ const OrderHistory = () => {
     try {
       const res = await axios.get('http://localhost:5000/api/auth/notifications');
       const newNotifications = res.data;
-      
+
       // Check for new payment/order notifications
       if (showPaymentToast) {
         const previousNotificationIds = notifications.length > 0 ? notifications.map(n => n._id) : [];
-        const newPaymentNotifications = newNotifications.filter(n => 
-          !previousNotificationIds.includes(n._id) && 
+        const newPaymentNotifications = newNotifications.filter(n =>
+          !previousNotificationIds.includes(n._id) &&
           (n.type === 'payment' || (n.type === 'order' && n.message.includes('processing'))) &&
           (n.message.includes('Payment') || n.message.includes('processing') || n.message.includes('received'))
         );
-        
+
         // Show toast for new payment/processing notifications
         if (newPaymentNotifications.length > 0) {
           const firstNotification = newPaymentNotifications[0];
@@ -106,7 +107,7 @@ const OrderHistory = () => {
           }
         }
       }
-      
+
       setNotifications(newNotifications);
       setUnreadCount(newNotifications.filter(n => !n.read).length);
     } catch (error) {
@@ -118,7 +119,7 @@ const OrderHistory = () => {
     try {
       await axios.put(`http://localhost:5000/api/auth/notifications/${notificationId}/read`);
       // Immediately update notifications to hide the clicked one
-      setNotifications(prev => prev.map(n => 
+      setNotifications(prev => prev.map(n =>
         n._id === notificationId ? { ...n, read: true } : n
       ));
       setUnreadCount(prev => Math.max(0, prev - 1));
@@ -177,7 +178,7 @@ const OrderHistory = () => {
     <div className="order-history-page">
       <div className="container">
         <h1>My Orders</h1>
-        
+
         {/* Notifications Section - Red at top */}
         {unreadNotifications.length > 0 && (
           <div className="notifications-section">
@@ -210,9 +211,9 @@ const OrderHistory = () => {
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <div style={{ flex: 1 }}>
-                      <p style={{ 
-                        color: '#dc3545', 
-                        fontWeight: 700, 
+                      <p style={{
+                        color: '#dc3545',
+                        fontWeight: 700,
                         margin: '0 0 0.5rem 0',
                         fontSize: '1rem'
                       }}>
@@ -245,7 +246,7 @@ const OrderHistory = () => {
             </div>
           </div>
         )}
-        
+
         {orders.length === 0 ? (
           <div className="no-orders">
             <p>{t('noOrdersYet')}</p>
@@ -262,17 +263,17 @@ const OrderHistory = () => {
                     <h3>{t('orderNumber')} #{order.orderNumber}</h3>
                     <div className="order-date-time">
                       <p className="order-date">
-                        📅 {new Date(order.createdAt).toLocaleDateString('en-US', { 
-                          weekday: 'long', 
-                          year: 'numeric', 
-                          month: 'long', 
-                          day: 'numeric' 
+                        📅 {new Date(order.createdAt).toLocaleDateString('en-US', {
+                          weekday: 'long',
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric'
                         })}
                       </p>
                       <p className="order-time">
-                        🕐 {new Date(order.createdAt).toLocaleTimeString('en-US', { 
-                          hour: '2-digit', 
-                          minute: '2-digit' 
+                        🕐 {new Date(order.createdAt).toLocaleTimeString('en-US', {
+                          hour: '2-digit',
+                          minute: '2-digit'
                         })}
                       </p>
                     </div>
@@ -286,8 +287,8 @@ const OrderHistory = () => {
                   <div className="order-items-list">
                     {order.items.map((item, idx) => (
                       <div key={idx} className="order-item-detail">
-                        <img 
-                          src={item.image || item.product?.image || 'https://via.placeholder.com/80'} 
+                        <img
+                          src={item.image || item.product?.image || 'https://via.placeholder.com/80'}
                           alt={item.name || item.product?.name}
                           className="order-item-image"
                         />
