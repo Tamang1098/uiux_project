@@ -41,7 +41,21 @@ const RegisterModal = ({ isOpen, onClose, onSwitchToLogin }) => {
     }
 
     setLoading(true);
+
+    // Start artificial delay timer (1.5s min)
+    const delayTimer = new Promise(resolve => setTimeout(resolve, 1500));
+
+    // Perform registration
     const result = await register(formData.name, formData.email, formData.password, formData.phone);
+
+    // Show toast immediately if successful
+    if (result.success) {
+      showToast('Register Successful', 'success');
+    }
+
+    // Wait for the remaining delay time
+    await delayTimer;
+
     setLoading(false);
 
     if (result.success) {
@@ -51,7 +65,7 @@ const RegisterModal = ({ isOpen, onClose, onSwitchToLogin }) => {
       setTimeout(() => localStorage.removeItem('newUserCreated'), 100);
 
       setFormData({ name: '', email: '', phone: '', password: '', confirmPassword: '' });
-      showToast(t('registrationSuccess'), 'success');
+      // Toast already shown
 
       // Switch to login modal - this will handle closing register modal and opening login modal
       if (onSwitchToLogin) {

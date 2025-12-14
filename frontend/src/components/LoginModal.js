@@ -28,15 +28,25 @@ const LoginModal = ({ isOpen, onClose, onSwitchToRegister, skipNavigation = fals
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
-    setLoading(true);
+    // Start artificial delay timer (1.5s min)
+    const delayTimer = new Promise(resolve => setTimeout(resolve, 1500));
 
+    // Perform login
     const result = await login(formData.email, formData.password);
+
+    // Show toast immediately if successful
+    if (result.success) {
+      showToast('Login Successful', 'success');
+    }
+
+    // Wait for the remaining delay time
+    await delayTimer;
+
     setLoading(false);
 
     if (result.success) {
       setFormData({ email: '', password: '' });
-      showToast(t('loginSuccess'), 'success');
+      // Toast already shown
       onClose();
 
       // Call custom onLoginSuccess callback if provided

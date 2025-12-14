@@ -39,9 +39,7 @@ const AdminPanel = () => {
     if (user?.role === 'admin') {
       fetchProducts();
       fetchCategories();
-      if (activeTab === 'orders') {
-        fetchOrders();
-      }
+      fetchOrders(); // Fetch orders immediately for dashboard stats
       if (activeTab === 'users') {
         fetchUsers();
       }
@@ -68,7 +66,7 @@ const AdminPanel = () => {
       // Listen for window events (same tab/window)
       window.addEventListener('newOrderCreated', handleNewOrder);
       window.addEventListener('newUserCreated', handleNewUser);
-      
+
       // Listen for localStorage changes (cross-tab communication)
       const handleStorageChange = (e) => {
         if (e.key === 'newOrderCreated') {
@@ -84,7 +82,7 @@ const AdminPanel = () => {
       const startPolling = () => {
         // Clear any existing interval
         clearInterval(pollInterval);
-        
+
         if (!document.hidden) {
           // Immediately fetch data when starting to poll
           if (activeTab === 'orders') {
@@ -92,7 +90,7 @@ const AdminPanel = () => {
           } else if (activeTab === 'users') {
             fetchUsers();
           }
-          
+
           // Then poll every 5 seconds
           pollInterval = setInterval(() => {
             if (!document.hidden) {
@@ -204,7 +202,7 @@ const AdminPanel = () => {
       // Calculate current total using current state values
       const currentTotal = existingImageUrls.length + additionalImageFiles.length + files.length;
       const maxAllowed = 5;
-      
+
       if (currentTotal > maxAllowed) {
         const allowedNew = maxAllowed - (existingImageUrls.length + additionalImageFiles.length);
         if (allowedNew <= 0) {
@@ -225,9 +223,9 @@ const AdminPanel = () => {
 
   const addImagesToState = async (files) => {
     if (!files || files.length === 0) return;
-    
+
     console.log('Adding files to state:', files.length);
-    
+
     // Filter out duplicates before adding - use functional update to get latest state
     setAdditionalImageFiles((prev) => {
       const newFiles = [...prev];
@@ -245,7 +243,7 @@ const AdminPanel = () => {
       console.log('Total files after add:', newFiles.length);
       return newFiles;
     });
-    
+
     // Create previews for all new files using Promise.all to ensure all load before updating
     const previewPromises = Array.from(files).map((file) => {
       return new Promise((resolve) => {
@@ -261,15 +259,15 @@ const AdminPanel = () => {
         reader.readAsDataURL(file);
       });
     });
-    
+
     // Wait for all previews to load
     try {
       const newPreviews = await Promise.all(previewPromises);
       // Filter out null values (failed reads) and update state
       const validPreviews = newPreviews.filter(preview => preview !== null);
-      
+
       console.log('Valid previews loaded:', validPreviews.length);
-      
+
       if (validPreviews.length > 0) {
         setAdditionalImagePreviews((prev) => {
           // Combine existing previews with new ones, avoiding duplicates
@@ -302,13 +300,13 @@ const AdminPanel = () => {
       // Removing a newly uploaded file
       // We need to remove from both files and previews arrays
       const fileIndex = index - existingCount;
-      
+
       // Remove from files array
       setAdditionalImageFiles((prev) => {
         const newFiles = prev.filter((_, i) => i !== fileIndex);
         return newFiles;
       });
-      
+
       // Remove from previews array (at the same index position)
       setAdditionalImagePreviews((prev) => {
         const newPreviews = prev.filter((_, i) => i !== index);
@@ -327,7 +325,7 @@ const AdminPanel = () => {
       submitData.append('category', formData.category);
       submitData.append('stock', formData.stock);
       submitData.append('featured', formData.featured);
-      
+
       // Add main image file if selected, otherwise use URL
       if (imageFile) {
         submitData.append('image', imageFile);
@@ -400,7 +398,7 @@ const AdminPanel = () => {
     setImagePreview(product.image ? (product.image.startsWith('http') ? product.image : `http://localhost:5000${product.image}`) : '');
     // Load existing additional images
     if (product.images && product.images.length > 0) {
-      const imageUrls = product.images.map(img => 
+      const imageUrls = product.images.map(img =>
         img.startsWith('http') ? img : (img.startsWith('/') ? `http://localhost:5000${img}` : img)
       );
       setAdditionalImagePreviews(imageUrls);
@@ -535,7 +533,7 @@ const AdminPanel = () => {
       });
       fetchOrders();
       alert('Order status updated!');
-      
+
       // Dispatch event to update user notifications (for navbar badge)
       window.dispatchEvent(new Event('orderStatusUpdated'));
       localStorage.setItem('orderStatusUpdated', Date.now().toString());
@@ -550,23 +548,23 @@ const AdminPanel = () => {
       alert('Payment ID not found. Cannot process payment.');
       return;
     }
-    
+
     if (!window.confirm('Verify this payment and set order status to "processing"? The user will receive a notification that their payment has been received and order is being processed.')) {
       return;
     }
-    
+
     try {
       // Update payment status to paid and set order status to processing (backend handles both)
       await axios.put(`http://localhost:5000/api/payments/${paymentId}/status`, {
         status: 'paid',
         setOrderStatus: 'processing'
       });
-      
+
       // Refresh orders to show updated status
       await fetchOrders();
-      
+
       alert('Payment verified! Order status set to "processing". User has been notified.');
-      
+
       // Dispatch events to notify user (for real-time updates if user has the page open)
       window.dispatchEvent(new Event('paymentVerified'));
       window.dispatchEvent(new Event('notificationUpdated'));
@@ -610,6 +608,10 @@ const AdminPanel = () => {
     }
   };
 
+  const [productSearch, setProductSearch] = useState('');
+  const [orderStatusFilter, setOrderStatusFilter] = useState('all');
+  const [userSearch, setUserSearch] = useState('');
+
   const getStatusColor = (status) => {
     const colors = {
       pending: '#ffa500',
@@ -622,9 +624,22 @@ const AdminPanel = () => {
     return colors[status] || '#666';
   };
 
-  const filteredProducts = selectedCategory === 'all' 
-    ? products 
-    : products.filter(p => p.category === selectedCategory);
+  const filteredProducts = products.filter(p => {
+    const matchesCategory = selectedCategory === 'all' || p.category === selectedCategory;
+    const matchesSearch = p.name.toLowerCase().includes(productSearch.toLowerCase());
+    return matchesCategory && matchesSearch;
+  });
+
+  const filteredOrders = orders.filter(o => {
+    const matchesStatus = orderStatusFilter === 'all' || o.orderStatus === orderStatusFilter;
+    // Optional: Add search by order ID if needed later
+    return matchesStatus;
+  });
+
+  const filteredUsers = users.filter(u =>
+    u.name.toLowerCase().includes(userSearch.toLowerCase()) ||
+    u.email.toLowerCase().includes(userSearch.toLowerCase())
+  );
 
   if (user?.role !== 'admin') {
     return (
@@ -632,13 +647,13 @@ const AdminPanel = () => {
         <div className="access-denied">
           <h2>Access Denied</h2>
           <p>You need admin privileges to access this page.</p>
-          <a href="/admin/login" style={{ 
-            display: 'inline-block', 
-            marginTop: '1rem', 
-            padding: '0.75rem 1.5rem', 
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', 
-            color: 'white', 
-            textDecoration: 'none', 
+          <a href="/admin/login" style={{
+            display: 'inline-block',
+            marginTop: '1rem',
+            padding: '0.75rem 1.5rem',
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            color: 'white',
+            textDecoration: 'none',
             borderRadius: '8px',
             fontWeight: '600'
           }}>
@@ -693,18 +708,55 @@ const AdminPanel = () => {
             <p className="summary-number">{products.length}</p>
           </div>
           <div className="summary-card">
-            <h3>Total Categories</h3>
-            <p className="summary-number">{categories.length}</p>
-          </div>
-          <div className="summary-card">
             <h3>Total Orders</h3>
             <p className="summary-number">{orders.length}</p>
           </div>
-          <div className="summary-card">
-            <h3>Total Users</h3>
-            <p className="summary-number">{users.length}</p>
+          <div className="summary-card revenue-card">
+            <h3>Total Revenue</h3>
+            <p className="summary-number">
+              Rs. {orders
+                .filter(o => o.orderStatus !== 'cancelled')
+                .reduce((acc, curr) => acc + (curr.totalAmount || 0), 0)
+                .toLocaleString()}
+            </p>
+          </div>
+          <div className="summary-card warning-card">
+            <h3>Pending Orders</h3>
+            <p className="summary-number">
+              {orders.filter(o => o.orderStatus === 'pending' || o.orderStatus === 'processing').length}
+            </p>
           </div>
         </div>
+
+        {/* Low Stock Alert Section */}
+        {products.some(p => p.stock < 5) && (
+          <div className="low-stock-section">
+            <h3 className="low-stock-title">⚠️ Low Stock Alerts</h3>
+            <div className="low-stock-grid">
+              {products
+                .filter(p => p.stock < 5)
+                .map(product => (
+                  <div key={product._id} className="low-stock-item">
+                    <img src={product.image.startsWith('http') ? product.image : `http://localhost:5000${product.image}`} alt={product.name} />
+                    <div className="low-stock-info">
+                      <h4>{product.name}</h4>
+                      <p>Stock: <span className="stock-count low">{product.stock}</span></p>
+                    </div>
+                    <button
+                      onClick={() => {
+                        handleEdit(product);
+                        setActiveTab('products');
+                        setShowForm(true);
+                      }}
+                      className="restock-btn"
+                    >
+                      Restock
+                    </button>
+                  </div>
+                ))}
+            </div>
+          </div>
+        )}
 
         {activeTab === 'products' && (
           <>
@@ -730,260 +782,270 @@ const AdminPanel = () => {
               </div>
             )}
 
-        {showForm && (
-          <div className="product-form-container">
-            <h2>{editingProduct ? 'Edit Product' : 'Add New Product'}</h2>
-            <form onSubmit={handleSubmit} className="product-form">
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Product Name *</label>
-                  <input
-                    type="text"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleChange}
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Category *</label>
-                  <select
-                    name="category"
-                    value={formData.category}
-                    onChange={handleChange}
-                    required
-                    className="category-select"
-                  >
-                    <option value="">Select Category</option>
-                    {categories.map((cat) => (
-                      <option key={cat._id} value={cat.name}>
-                        {cat.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Price (Rs.) *</label>
-                  <input
-                    type="number"
-                    name="price"
-                    value={formData.price}
-                    onChange={handleChange}
-                    required
-                    min="0"
-                    step="0.01"
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Stock *</label>
-                  <input
-                    type="number"
-                    name="stock"
-                    value={formData.stock}
-                    onChange={handleChange}
-                    required
-                    min="0"
-                  />
-                </div>
-              </div>
-
-              <div className="form-group">
-                <label>Main Product Image *</label>
-                <input
-                  type="file"
-                  name="image"
-                  accept="image/*"
-                  onChange={handleImageChange}
-                  className="file-input"
-                />
-                {imagePreview && (
-                  <div className="image-preview">
-                    <img src={imagePreview} alt="Main Preview" />
-                  </div>
-                )}
-                {!imageFile && (
-                  <div className="image-url-fallback" style={{ marginTop: '0.5rem' }}>
-                    <label style={{ fontSize: '0.9rem', marginBottom: '0.25rem', display: 'block' }}>Or enter image URL:</label>
-                    <input
-                      type="url"
-                      name="image"
-                      value={formData.image}
-                      onChange={handleChange}
-                      placeholder="https://example.com/image.jpg"
-                    />
-                  </div>
-                )}
-              </div>
-
-              <div className="form-group">
-                <label>Additional Product Images (Optional - 1 to 5 images)</label>
-                <input
-                  type="file"
-                  name="additionalImages"
-                  accept="image/*"
-                  multiple
-                  onChange={handleAdditionalImagesChange}
-                  className="file-input"
-                />
-                <p style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.25rem' }}>
-                  Select 1 to 5 additional images ({existingImageUrls.length + additionalImageFiles.length}/5 selected)
-                </p>
-                {(existingImageUrls.length + additionalImageFiles.length) > 0 && (existingImageUrls.length + additionalImageFiles.length) < 5 && (
-                  <p style={{ fontSize: '0.85rem', color: '#2196F3', marginTop: '0.25rem' }}>
-                    You can select more images (up to {5 - (existingImageUrls.length + additionalImageFiles.length)} more)
-                  </p>
-                )}
-                {(existingImageUrls.length + additionalImageFiles.length) >= 5 && (
-                  <p style={{ fontSize: '0.85rem', color: '#ff7043', marginTop: '0.25rem', fontWeight: 'bold' }}>
-                    ✓ Maximum limit reached (5 images). Remove images to add new ones.
-                  </p>
-                )}
-                {(existingImageUrls.length > 0 || additionalImageFiles.length > 0) && (
-                  <div className="additional-images-preview">
-                    <h4>Selected Images ({existingImageUrls.length + additionalImageFiles.length}):</h4>
-                    <div className="additional-images-grid">
-                      {additionalImagePreviews.map((preview, index) => (
-                        <div key={`preview-${index}-${preview.substring(0, 20)}`}>
-                          <img 
-                            src={preview} 
-                            alt={`Additional ${index + 1}`}
-                            onError={(e) => {
-                              console.error('Error loading image preview:', index);
-                              e.target.src = 'https://via.placeholder.com/100';
-                            }}
-                          />
-                          <button
-                            type="button"
-                            onClick={() => removeAdditionalImage(index)}
-                            title="Remove image"
-                          >
-                            ×
-                          </button>
-                        </div>
-                      ))}
+            {showForm && (
+              <div className="product-form-container">
+                <h2>{editingProduct ? 'Edit Product' : 'Add New Product'}</h2>
+                <form onSubmit={handleSubmit} className="product-form">
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label>Product Name *</label>
+                      <input
+                        type="text"
+                        name="name"
+                        value={formData.name}
+                        onChange={handleChange}
+                        required
+                      />
                     </div>
-                  </div>
-                )}
-              </div>
-
-              <div className="form-group checkbox-group">
-                <label>
-                  <input
-                    type="checkbox"
-                    name="featured"
-                    checked={formData.featured}
-                    onChange={handleChange}
-                  />
-                  Featured Product
-                </label>
-              </div>
-
-              <div className="form-actions">
-                <button type="submit" className="submit-btn">
-                  {editingProduct ? 'Update Product' : 'Add Product'}
-                </button>
-                {editingProduct && (
-                  <button type="button" onClick={resetForm} className="cancel-btn">
-                    Cancel
-                  </button>
-                )}
-              </div>
-            </form>
-          </div>
-        )}
-
-        <div className="products-list">
-          <div className="products-header">
-            <h2>All Products ({filteredProducts.length})</h2>
-            <div className="category-filter">
-              <label>Filter by Category:</label>
+                    <div className="form-group">
+                      <label>Category *</label>
                       <select
-                        value={selectedCategory}
-                        onChange={(e) => setSelectedCategory(e.target.value)}
-                        className="category-filter-select"
+                        name="category"
+                        value={formData.category}
+                        onChange={handleChange}
+                        required
+                        className="category-select"
                       >
-                        <option value="all">All Categories</option>
+                        <option value="">Select Category</option>
                         {categories.map((cat) => (
                           <option key={cat._id} value={cat.name}>
                             {cat.name}
                           </option>
                         ))}
                       </select>
-            </div>
-          </div>
-          {loading ? (
-            <div className="loading">Loading products...</div>
-          ) : filteredProducts.length === 0 ? (
-            <div className="no-products">
-              {selectedCategory === 'all' 
-                ? 'No products added yet.' 
-                : `No products found in "${selectedCategory}" category.`}
-            </div>
-          ) : (
-            <div className="products-table">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Image</th>
-                    <th>Name</th>
-                    <th>Category</th>
-                    <th>Price</th>
-                    <th>Stock</th>
-                    <th>Featured</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredProducts.map((product) => (
-                    <tr key={product._id}>
-                      <td>
-                        <img
-                          src={
-                            product.image 
-                              ? (product.image.startsWith('http') 
-                                  ? product.image 
-                                  : product.image.startsWith('/uploads/')
-                                  ? `http://localhost:5000${product.image}`
-                                  : product.image)
-                              : 'https://via.placeholder.com/50'
-                          }
-                          alt={product.name}
-                          className="product-thumb"
-                          onError={(e) => {
-                            e.target.src = 'https://via.placeholder.com/50';
-                          }}
+                    </div>
+                  </div>
+
+
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label>Price (Rs.) *</label>
+                      <input
+                        type="number"
+                        name="price"
+                        value={formData.price}
+                        onChange={handleChange}
+                        required
+                        min="0"
+                        step="0.01"
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Stock *</label>
+                      <input
+                        type="number"
+                        name="stock"
+                        value={formData.stock}
+                        onChange={handleChange}
+                        required
+                        min="0"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="form-group">
+                    <label>Main Product Image *</label>
+                    <input
+                      type="file"
+                      name="image"
+                      accept="image/*"
+                      onChange={handleImageChange}
+                      className="file-input"
+                    />
+                    {imagePreview && (
+                      <div className="image-preview">
+                        <img src={imagePreview} alt="Main Preview" />
+                      </div>
+                    )}
+                    {!imageFile && (
+                      <div className="image-url-fallback" style={{ marginTop: '0.5rem' }}>
+                        <label style={{ fontSize: '0.9rem', marginBottom: '0.25rem', display: 'block' }}>Or enter image URL:</label>
+                        <input
+                          type="url"
+                          name="image"
+                          value={formData.image}
+                          onChange={handleChange}
+                          placeholder="https://example.com/image.jpg"
                         />
-                      </td>
-                      <td>{product.name}</td>
-                      <td>{product.category}</td>
-                      <td>Rs. {product.price}</td>
-                      <td>{product.stock}</td>
-                      <td>{product.featured ? '✓' : '-'}</td>
-                      <td>
-                        <button
-                          onClick={() => handleEdit(product)}
-                          className="edit-btn"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => handleDelete(product._id)}
-                          className="delete-btn"
-                        >
-                          Delete
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="form-group">
+                    <label>Additional Product Images (Optional - 1 to 5 images)</label>
+                    <input
+                      type="file"
+                      name="additionalImages"
+                      accept="image/*"
+                      multiple
+                      onChange={handleAdditionalImagesChange}
+                      className="file-input"
+                    />
+                    <p style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.25rem' }}>
+                      Select 1 to 5 additional images ({existingImageUrls.length + additionalImageFiles.length}/5 selected)
+                    </p>
+                    {(existingImageUrls.length + additionalImageFiles.length) > 0 && (existingImageUrls.length + additionalImageFiles.length) < 5 && (
+                      <p style={{ fontSize: '0.85rem', color: '#2196F3', marginTop: '0.25rem' }}>
+                        You can select more images (up to {5 - (existingImageUrls.length + additionalImageFiles.length)} more)
+                      </p>
+                    )}
+                    {(existingImageUrls.length + additionalImageFiles.length) >= 5 && (
+                      <p style={{ fontSize: '0.85rem', color: '#ff7043', marginTop: '0.25rem', fontWeight: 'bold' }}>
+                        ✓ Maximum limit reached (5 images). Remove images to add new ones.
+                      </p>
+                    )}
+                    {(existingImageUrls.length > 0 || additionalImageFiles.length > 0) && (
+                      <div className="additional-images-preview">
+                        <h4>Selected Images ({existingImageUrls.length + additionalImageFiles.length}):</h4>
+                        <div className="additional-images-grid">
+                          {additionalImagePreviews.map((preview, index) => (
+                            <div key={`preview-${index}-${preview.substring(0, 20)}`}>
+                              <img
+                                src={preview}
+                                alt={`Additional ${index + 1}`}
+                                onError={(e) => {
+                                  console.error('Error loading image preview:', index);
+                                  e.target.src = 'https://via.placeholder.com/100';
+                                }}
+                              />
+                              <button
+                                type="button"
+                                onClick={() => removeAdditionalImage(index)}
+                                title="Remove image"
+                              >
+                                ×
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="form-group checkbox-group">
+                    <label>
+                      <input
+                        type="checkbox"
+                        name="featured"
+                        checked={formData.featured}
+                        onChange={handleChange}
+                      />
+                      Featured Product
+                    </label>
+                  </div>
+
+                  <div className="form-actions">
+                    <button type="submit" className="submit-btn">
+                      {editingProduct ? 'Update Product' : 'Add Product'}
+                    </button>
+                    {editingProduct && (
+                      <button type="button" onClick={resetForm} className="cancel-btn">
+                        Cancel
+                      </button>
+                    )}
+                  </div>
+                </form>
+              </div>
+            )}
+
+            <div className="products-list">
+              <div className="products-header">
+                <h2>All Products ({filteredProducts.length})</h2>
+                <div className="filter-group">
+                  <div className="category-filter">
+                    <select
+                      value={selectedCategory}
+                      onChange={(e) => setSelectedCategory(e.target.value)}
+                      className="category-filter-select"
+                    >
+                      <option value="all">All Categories</option>
+                      {categories.map((cat) => (
+                        <option key={cat._id} value={cat.name}>
+                          {cat.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="search-box">
+                    <input
+                      type="text"
+                      placeholder="Search products..."
+                      value={productSearch}
+                      onChange={(e) => setProductSearch(e.target.value)}
+                      className="search-input"
+                    />
+                  </div>
+                </div>
+              </div>
+              {loading ? (
+                <div className="loading">Loading products...</div>
+              ) : filteredProducts.length === 0 ? (
+                <div className="no-products">
+                  {selectedCategory === 'all'
+                    ? 'No products added yet.'
+                    : `No products found in "${selectedCategory}" category.`}
+                </div>
+              ) : (
+                <div className="products-table">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Image</th>
+                        <th>Name</th>
+                        <th>Category</th>
+                        <th>Price</th>
+                        <th>Stock</th>
+                        <th>Featured</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredProducts.map((product) => (
+                        <tr key={product._id}>
+                          <td>
+                            <img
+                              src={
+                                product.image
+                                  ? (product.image.startsWith('http')
+                                    ? product.image
+                                    : product.image.startsWith('/uploads/')
+                                      ? `http://localhost:5000${product.image}`
+                                      : product.image)
+                                  : 'https://via.placeholder.com/50'
+                              }
+                              alt={product.name}
+                              className="product-thumb"
+                              onError={(e) => {
+                                e.target.src = 'https://via.placeholder.com/50';
+                              }}
+                            />
+                          </td>
+                          <td>{product.name}</td>
+                          <td>{product.category}</td>
+                          <td>Rs. {product.price}</td>
+                          <td>{product.stock}</td>
+                          <td>{product.featured ? '✓' : '-'}</td>
+                          <td>
+                            <button
+                              onClick={() => handleEdit(product)}
+                              className="edit-btn"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              onClick={() => handleDelete(product._id)}
+                              className="delete-btn"
+                            >
+                              Delete
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
-          )}
-          </div>
           </>
         )}
 
@@ -1085,10 +1147,37 @@ const AdminPanel = () => {
             </div>
             <div className="products-list">
               <h2>All Orders ({orders.length})</h2>
+              {/* Orders Header & Filter */}
+              <div className="section-header">
+                <h2>Order Management ({filteredOrders.length})</h2>
+                <div className="filter-group">
+                  <div className="category-filter">
+                    <span className="filter-label">Status:</span>
+                    <select
+                      value={orderStatusFilter}
+                      onChange={(e) => setOrderStatusFilter(e.target.value)}
+                      className="category-filter-select"
+                    >
+                      <option value="all">All Status</option>
+                      <option value="pending">Pending</option>
+                      <option value="confirmed">Confirmed</option>
+                      <option value="processing">Processing</option>
+                      <option value="shipped">Shipped</option>
+                      <option value="delivered">Delivered</option>
+                      <option value="cancelled">Cancelled</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
               {ordersLoading ? (
                 <div className="loading">Loading orders...</div>
-              ) : orders.length === 0 ? (
-                <div className="no-products">No orders yet.</div>
+              ) : filteredOrders.length === 0 ? (
+                <div className="no-products">
+                  {orderStatusFilter === 'all'
+                    ? 'No orders found.'
+                    : `No orders with status "${orderStatusFilter}".`}
+                </div>
               ) : (
                 <div className="orders-table-container">
                   <table className="orders-table">
@@ -1106,7 +1195,7 @@ const AdminPanel = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {orders.map((order) => (
+                      {filteredOrders.map((order) => (
                         <tr key={order._id}>
                           <td>{order.orderNumber}</td>
                           <td>
@@ -1134,19 +1223,19 @@ const AdminPanel = () => {
                                   {order.paymentStatus}
                                 </span>
                               )}
-                              <span style={{ 
-                                fontWeight: 700, 
-                                color: order.paymentMethod === 'cod' 
-                                  ? '#ff7043' 
-                                  : order.paymentStatus === 'paid' 
-                                    ? '#4CAF50' 
+                              <span style={{
+                                fontWeight: 700,
+                                color: order.paymentMethod === 'cod'
+                                  ? '#ff7043'
+                                  : order.paymentStatus === 'paid'
+                                    ? '#4CAF50'
                                     : '#2196F3',
                                 fontSize: '0.85rem'
                               }}>
-                                {order.paymentMethod === 'cod' 
-                                  ? '💵 COD' 
-                                  : order.paymentStatus === 'paid' 
-                                    ? '💳 Online (Payment Done)' 
+                                {order.paymentMethod === 'cod'
+                                  ? '💵 COD'
+                                  : order.paymentStatus === 'paid'
+                                    ? '💳 Online (Payment Done)'
                                     : '💳 Online'}
                               </span>
                               {/* Show Payment Done button for all online payments */}
@@ -1181,8 +1270,8 @@ const AdminPanel = () => {
                                   disabled={order.orderStatus === 'processing'}
                                   title={order.orderStatus === 'processing' ? 'Order is already being processed' : 'Click to verify payment and set order status to processing'}
                                 >
-                                  {order.orderStatus === 'processing' 
-                                    ? '✓ Processing' 
+                                  {order.orderStatus === 'processing'
+                                    ? '✓ Processing'
                                     : '✓ Payment Done'}
                                 </button>
                               )}
@@ -1267,15 +1356,25 @@ const AdminPanel = () => {
         {activeTab === 'users' && (
           <>
             <div className="section-header">
-              <h2>User Management</h2>
+              <h2>User Management ({filteredUsers.length})</h2>
+              <div className="filter-group">
+                <div className="search-box">
+                  <input
+                    type="text"
+                    placeholder="Search users..."
+                    value={userSearch}
+                    onChange={(e) => setUserSearch(e.target.value)}
+                    className="search-input"
+                  />
+                </div>
+              </div>
               <button onClick={fetchUsers} className="add-product-btn">
-                Refresh
+                Refresh controls
               </button>
             </div>
             <div className="products-list">
-              <h2>All Users ({users.length})</h2>
-              {users.length === 0 ? (
-                <div className="no-products">No users registered yet.</div>
+              {filteredUsers.length === 0 ? (
+                <div className="no-products">No users found.</div>
               ) : (
                 <div className="products-table">
                   <table>
@@ -1290,7 +1389,7 @@ const AdminPanel = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {users.map((userItem) => (
+                      {filteredUsers.map((userItem) => (
                         <tr key={userItem._id}>
                           <td>{userItem.name}</td>
                           <td>{userItem.email}</td>

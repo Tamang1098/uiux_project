@@ -83,6 +83,12 @@ const OrderHistory = () => {
     }
   };
 
+  const notificationsRef = React.useRef(notifications);
+
+  useEffect(() => {
+    notificationsRef.current = notifications;
+  }, [notifications]);
+
   const fetchNotifications = async (showPaymentToast = true) => {
     try {
       const res = await axios.get('http://localhost:5000/api/auth/notifications');
@@ -90,7 +96,8 @@ const OrderHistory = () => {
 
       // Check for new payment/order notifications
       if (showPaymentToast) {
-        const previousNotificationIds = notifications.length > 0 ? notifications.map(n => n._id) : [];
+        const currentNotifications = notificationsRef.current;
+        const previousNotificationIds = currentNotifications.length > 0 ? currentNotifications.map(n => n._id) : [];
         const newPaymentNotifications = newNotifications.filter(n =>
           !previousNotificationIds.includes(n._id) &&
           (n.type === 'payment' || (n.type === 'order' && n.message.includes('processing'))) &&
@@ -101,9 +108,9 @@ const OrderHistory = () => {
         if (newPaymentNotifications.length > 0) {
           const firstNotification = newPaymentNotifications[0];
           if (firstNotification.message.includes('processing') || firstNotification.message.includes('received')) {
-            showToast('Payment received! Your order is being processed.', 'success');
+            showToast('Payment received! Your order is being processed.', 'success', 1000);
           } else {
-            showToast(t('paymentSuccessful'), 'success');
+            showToast(t('paymentSuccessful'), 'success', 1000);
           }
         }
       }

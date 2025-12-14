@@ -9,7 +9,7 @@ const OrderSuccessModal = ({ isOpen, onClose }) => {
   useEffect(() => {
     if (isOpen) {
       // Progress bar animation
-      const duration = 2000; // 2 seconds
+      const duration = 1000; // 1 second
       const interval = 20; // Update every 20ms
       const increment = (100 / (duration / interval));
 
